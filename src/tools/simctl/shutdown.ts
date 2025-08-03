@@ -21,7 +21,7 @@ export async function simctlShutdownTool(args: any) {
 
     // Execute shutdown command
     const startTime = Date.now();
-    const result = await executeCommand(command, { 
+    const result = await executeCommand(command, {
       timeout: 60000, // 1 minute for shutdown
     });
     const duration = Date.now() - startTime;
@@ -47,10 +47,7 @@ export async function simctlShutdownTool(args: any) {
       }
       // Invalid device ID
       else if (result.stderr.includes('Invalid device')) {
-        throw new McpError(
-          ErrorCode.InvalidParams,
-          `Invalid device ID: ${deviceId}`
-        );
+        throw new McpError(ErrorCode.InvalidParams, `Invalid device ID: ${deviceId}`);
       }
     }
 

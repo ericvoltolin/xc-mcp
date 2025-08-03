@@ -46,12 +46,7 @@ interface SetCacheConfigArgs {
 
 export async function setCacheConfigTool(args: any): Promise<ToolResult> {
   try {
-    const { 
-      cacheType, 
-      maxAgeMs, 
-      maxAgeMinutes, 
-      maxAgeHours 
-    } = args as SetCacheConfigArgs;
+    const { cacheType, maxAgeMs, maxAgeMinutes, maxAgeHours } = args as SetCacheConfigArgs;
 
     if (!['simulator', 'project', 'response', 'all'].includes(cacheType)) {
       throw new McpError(
@@ -103,11 +98,15 @@ export async function setCacheConfigTool(args: any): Promise<ToolResult> {
       content: [
         {
           type: 'text' as const,
-          text: JSON.stringify({
-            message: 'Cache configuration updated',
-            results,
-            timestamp: new Date().toISOString(),
-          }, null, 2),
+          text: JSON.stringify(
+            {
+              message: 'Cache configuration updated',
+              results,
+              timestamp: new Date().toISOString(),
+            },
+            null,
+            2
+          ),
         },
       ],
     };
@@ -158,11 +157,15 @@ export async function clearCacheTool(args: any): Promise<ToolResult> {
       content: [
         {
           type: 'text' as const,
-          text: JSON.stringify({
-            message: 'Cache cleared successfully',
-            results,
-            timestamp: new Date().toISOString(),
-          }, null, 2),
+          text: JSON.stringify(
+            {
+              message: 'Cache cleared successfully',
+              results,
+              timestamp: new Date().toISOString(),
+            },
+            null,
+            2
+          ),
         },
       ],
     };
@@ -222,10 +225,14 @@ export async function getCacheConfigTool(args: any): Promise<ToolResult> {
       content: [
         {
           type: 'text' as const,
-          text: JSON.stringify({
-            cacheConfiguration: config,
-            timestamp: new Date().toISOString(),
-          }, null, 2),
+          text: JSON.stringify(
+            {
+              cacheConfiguration: config,
+              timestamp: new Date().toISOString(),
+            },
+            null,
+            2
+          ),
         },
       ],
     };

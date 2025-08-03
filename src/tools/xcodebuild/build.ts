@@ -16,13 +16,13 @@ interface BuildToolArgs {
 }
 
 export async function xcodebuildBuildTool(args: any) {
-  const { 
-    projectPath, 
-    scheme, 
+  const {
+    projectPath,
+    scheme,
     configuration = 'Debug',
     destination,
     sdk,
-    derivedDataPath
+    derivedDataPath,
   } = args as BuildToolArgs;
 
   try {
@@ -32,8 +32,8 @@ export async function xcodebuildBuildTool(args: any) {
 
     // Get smart defaults from cache
     const preferredConfig = await projectCache.getPreferredBuildConfig(projectPath);
-    const smartDestination = destination || await getSmartDestination(preferredConfig);
-    
+    const smartDestination = destination || (await getSmartDestination(preferredConfig));
+
     // Build final configuration
     const finalConfig = {
       scheme: scheme || preferredConfig?.scheme || scheme,
@@ -50,7 +50,7 @@ export async function xcodebuildBuildTool(args: any) {
 
     // Execute command with extended timeout for builds
     const startTime = Date.now();
-    const result = await executeCommand(command, { 
+    const result = await executeCommand(command, {
       timeout: 600000, // 10 minutes for builds
       maxBuffer: 50 * 1024 * 1024, // 50MB buffer for build logs
     });
@@ -58,7 +58,7 @@ export async function xcodebuildBuildTool(args: any) {
 
     // Extract build summary
     const summary = extractBuildSummary(result.stdout, result.stderr, result.code);
-    
+
     // Record build result in project cache
     projectCache.recordBuildResult(projectPath, finalConfig, {
       timestamp: new Date(),
@@ -110,7 +110,7 @@ export async function xcodebuildBuildTool(args: any) {
         destination: finalConfig.destination,
         duration,
       },
-      nextSteps: summary.success 
+      nextSteps: summary.success
         ? [
             `✅ Build completed successfully in ${duration}ms`,
             `Use 'xcodebuild-get-details' with buildId '${cacheId}' for full logs`,
@@ -120,9 +120,7 @@ export async function xcodebuildBuildTool(args: any) {
             `First error: ${summary.firstError || 'Unknown error'}`,
             `Use 'xcodebuild-get-details' with buildId '${cacheId}' for full logs and errors`,
           ],
-      availableDetails: [
-        'full-log', 'errors-only', 'warnings-only', 'summary', 'command'
-      ]
+      availableDetails: ['full-log', 'errors-only', 'warnings-only', 'summary', 'command'],
     };
 
     const responseText = JSON.stringify(responseData, null, 2);
@@ -170,25 +168,25 @@ async function getSmartDestination(preferredConfig: any): Promise<string | undef
 function extractErrors(output: string): string[] {
   const errors: string[] = [];
   const lines = output.split('\n');
-  
+
   for (const line of lines) {
     if (line.includes('error:') || line.includes('** BUILD FAILED **')) {
       errors.push(line.trim());
     }
   }
-  
+
   return errors;
 }
 
 function extractWarnings(output: string): string[] {
   const warnings: string[] = [];
   const lines = output.split('\n');
-  
+
   for (const line of lines) {
     if (line.includes('warning:')) {
       warnings.push(line.trim());
     }
   }
-  
+
   return warnings;
 }

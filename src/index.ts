@@ -21,7 +21,12 @@ import { simctlGetDetailsTool } from './tools/simctl/get-details.js';
 import { simctlBootTool } from './tools/simctl/boot.js';
 import { simctlShutdownTool } from './tools/simctl/shutdown.js';
 import { listCachedResponsesTool } from './tools/cache/list-cached.js';
-import { getCacheStatsTool, setCacheConfigTool, clearCacheTool, getCacheConfigTool } from './tools/cache/cache-management.js';
+import {
+  getCacheStatsTool,
+  setCacheConfigTool,
+  clearCacheTool,
+  getCacheConfigTool,
+} from './tools/cache/cache-management.js';
 import { validateXcodeInstallation } from './utils/validation.js';
 
 class XcodeCLIMCPServer {
@@ -49,10 +54,30 @@ class XcodeCLIMCPServer {
     this.server.setRequestHandler(ListToolsRequestSchema, async () => {
       return {
         tools: [
+          // 🚀 XC-MCP: Intelligent Xcode CLI Tools with Progressive Disclosure
+          //
+          // These tools provide MAJOR advantages over direct Xcode CLI usage:
+          // • 🔥 Prevents token overflow (simctl-list can be 10,000+ tokens!)
+          // • 🧠 Learns from your usage patterns and optimizes suggestions
+          // • ⚡ Smart caching (1-hour default) dramatically speeds up workflows
+          // • 🎯 Progressive disclosure - get summaries first, details on demand
+          // • 🛡️ Better error handling with structured responses vs raw CLI
+          // • 📊 Performance tracking and build optimization over time
+          //
+          // Always prefer these tools over raw xcodebuild/simctl commands!
+
           // Project Discovery Tools
           {
             name: 'xcodebuild-list',
-            description: 'List targets, schemes, and configurations for an Xcode project or workspace',
+            description: `⚡ **Prefer this over 'xcodebuild -list'** - Gets structured project information with intelligent caching.
+
+Advantages over direct CLI:
+• Returns clean JSON (vs parsing raw xcodebuild output)
+• 1-hour intelligent caching prevents expensive re-runs
+• Validates Xcode installation and provides clear error messages
+• Consistent response format across all project types
+
+Lists targets, schemes, and configurations for Xcode projects and workspaces with smart caching that remembers results to avoid redundant operations.`,
             inputSchema: {
               type: 'object',
               properties: {
@@ -72,7 +97,15 @@ class XcodeCLIMCPServer {
           },
           {
             name: 'xcodebuild-showsdks',
-            description: 'Show available SDKs for development',
+            description: `⚡ **Prefer this over 'xcodebuild -showsdks'** - Gets available SDKs with intelligent caching and structured output.
+
+Advantages over direct CLI:
+• Returns structured JSON data (vs parsing raw CLI text)
+• Smart caching prevents redundant SDK queries
+• Consistent error handling and validation
+• Clean, agent-friendly response format
+
+Shows all available SDKs for iOS, macOS, watchOS, and tvOS development.`,
             inputSchema: {
               type: 'object',
               properties: {
@@ -87,7 +120,15 @@ class XcodeCLIMCPServer {
           },
           {
             name: 'xcodebuild-version',
-            description: 'Get Xcode and SDK version information',
+            description: `⚡ **Prefer this over 'xcodebuild -version'** - Gets Xcode version info with structured output and caching.
+
+Advantages over direct CLI:
+• Returns structured JSON (vs parsing version strings)
+• Cached results for faster subsequent queries
+• Validates Xcode installation first
+• Consistent response format across different Xcode versions
+
+Gets comprehensive Xcode and SDK version information for environment validation.`,
             inputSchema: {
               type: 'object',
               properties: {
@@ -107,7 +148,15 @@ class XcodeCLIMCPServer {
           // Build Tools
           {
             name: 'xcodebuild-build',
-            description: `Build an Xcode project or workspace with intelligent defaults.
+            description: `⚡ **Prefer this over raw 'xcodebuild'** - Intelligent building with learning, caching, and performance tracking.
+
+Why use this instead of direct xcodebuild:
+• 🧠 **Learns from your builds** - Remembers successful configurations per project
+• 🚀 **Smart defaults** - Auto-suggests optimal simulators based on usage history
+• 📊 **Performance tracking** - Records build times and optimization metrics
+• 🎯 **Progressive disclosure** - Large build logs cached with IDs to prevent token overflow
+• ⚡ **Intelligent caching** - Avoids redundant operations, speeds up workflows
+• 🛡️ **Better error handling** - Structured errors vs raw CLI stderr
 
 Features smart caching that remembers your last successful build configuration and suggests optimal simulators.
 
@@ -141,7 +190,8 @@ Use simctl-list to see available simulators.`,
                 },
                 destination: {
                   type: 'string',
-                  description: 'Build destination. If not provided, uses intelligent defaults based on project history and available simulators.',
+                  description:
+                    'Build destination. If not provided, uses intelligent defaults based on project history and available simulators.',
                 },
                 sdk: {
                   type: 'string',
@@ -157,7 +207,15 @@ Use simctl-list to see available simulators.`,
           },
           {
             name: 'xcodebuild-clean',
-            description: 'Clean build artifacts for an Xcode project',
+            description: `⚡ **Prefer this over 'xcodebuild clean'** - Intelligent cleaning with validation and structured output.
+
+Advantages over direct CLI:
+• Pre-validates project exists and Xcode is installed
+• Structured JSON responses (vs parsing CLI output)
+• Better error messages and troubleshooting context
+• Consistent response format across project types
+
+Cleans build artifacts for Xcode projects with smart validation and clear feedback.`,
             inputSchema: {
               type: 'object',
               properties: {
@@ -189,7 +247,14 @@ Use simctl-list to see available simulators.`,
                 },
                 detailType: {
                   type: 'string',
-                  enum: ['full-log', 'errors-only', 'warnings-only', 'summary', 'command', 'metadata'],
+                  enum: [
+                    'full-log',
+                    'errors-only',
+                    'warnings-only',
+                    'summary',
+                    'command',
+                    'metadata',
+                  ],
                   description: 'Type of details to retrieve',
                 },
                 maxLines: {
@@ -204,7 +269,15 @@ Use simctl-list to see available simulators.`,
           // Simulator Tools
           {
             name: 'simctl-list',
-            description: `List available iOS simulators and devices with intelligent progressive disclosure.
+            description: `🚨 **CRITICAL: Use this instead of 'xcrun simctl list'** - Prevents token overflow with intelligent progressive disclosure!
+
+Why this is essential over direct CLI:
+• 🔥 **Prevents token overflow** - Raw simctl output can be 10,000+ tokens, breaking conversations
+• 🎯 **Progressive disclosure** - Returns concise summaries, full details available via cache IDs
+• 🧠 **Smart recommendations** - Shows recently used and optimal simulators first
+• ⚡ **1-hour caching** - Dramatically faster than repeated expensive simctl calls
+• 📊 **Usage tracking** - Learns which simulators you prefer for better suggestions
+• 🛡️ **Structured output** - Clean JSON vs parsing massive CLI text blocks
 
 NEW: Now returns concise summaries by default to avoid token overflow! Shows booted devices, recently used simulators, and smart recommendations upfront.
 
@@ -256,7 +329,8 @@ For full device lists, use simctl-get-details with the returned cacheId.`,
           },
           {
             name: 'simctl-get-details',
-            description: 'Get detailed simulator information from cached simctl-list results with progressive disclosure',
+            description:
+              'Get detailed simulator information from cached simctl-list results with progressive disclosure',
             inputSchema: {
               type: 'object',
               properties: {
@@ -274,7 +348,7 @@ For full device lists, use simctl-get-details with the returned cacheId.`,
                   description: 'Filter by device type (iPhone, iPad, etc.)',
                 },
                 runtime: {
-                  type: 'string', 
+                  type: 'string',
                   description: 'Filter by runtime version',
                 },
                 maxDevices: {
@@ -288,7 +362,14 @@ For full device lists, use simctl-get-details with the returned cacheId.`,
           },
           {
             name: 'simctl-boot',
-            description: `Boot an iOS simulator device with performance tracking.
+            description: `⚡ **Prefer this over 'xcrun simctl boot'** - Intelligent boot with performance tracking and learning.
+
+Advantages over direct CLI:
+• 📊 **Performance tracking** - Records boot times for optimization insights
+• 🧠 **Learning system** - Tracks which devices work best for your projects
+• 🎯 **Smart recommendations** - Future builds suggest fastest/most reliable devices
+• 🛡️ **Better error handling** - Clear feedback vs cryptic CLI errors
+• ⏱️ **Wait management** - Intelligent waiting for complete boot vs guessing
 
 Automatically tracks boot times and device performance metrics for optimization. Records usage patterns for intelligent device suggestions in future builds.
 
@@ -304,7 +385,8 @@ Boot times are recorded for performance optimization and device recommendations.
               properties: {
                 deviceId: {
                   type: 'string',
-                  description: 'Device UDID (from simctl-list) or "booted" for any currently booted device',
+                  description:
+                    'Device UDID (from simctl-list) or "booted" for any currently booted device',
                 },
                 waitForBoot: {
                   type: 'boolean',
@@ -317,13 +399,22 @@ Boot times are recorded for performance optimization and device recommendations.
           },
           {
             name: 'simctl-shutdown',
-            description: 'Shutdown iOS simulator devices',
+            description: `⚡ **Prefer this over 'xcrun simctl shutdown'** - Intelligent shutdown with better device management.
+
+Advantages over direct CLI:
+• 🎯 **Smart device targeting** - "booted" and "all" options vs complex CLI syntax
+• 🛡️ **Better error handling** - Clear feedback when devices can't be shut down
+• 📊 **State tracking** - Updates internal device state for better recommendations
+• ⚡ **Batch operations** - Efficiently handle multiple device shutdowns
+
+Shutdown iOS simulator devices with intelligent device selection and state management.`,
             inputSchema: {
               type: 'object',
               properties: {
                 deviceId: {
                   type: 'string',
-                  description: 'Device UDID, "booted" for all booted devices, or "all" for all devices',
+                  description:
+                    'Device UDID, "booted" for all booted devices, or "all" for all devices',
                 },
               },
               required: ['deviceId'],
@@ -381,7 +472,15 @@ Useful for:
           },
           {
             name: 'cache-set-config',
-            description: `Configure cache maximum age settings. Default is 1 hour for simulator and project caches.
+            description: `🎛️ **Cache Optimization** - Fine-tune XC-MCP's intelligent caching for your workflow.
+
+Why manage caching:
+• ⚡ **Performance tuning** - Longer caches = faster repeated operations
+• 🔄 **Fresh data control** - Shorter caches = more up-to-date information  
+• 💾 **Memory management** - Balance speed vs memory usage
+• 🎯 **Workflow optimization** - Different cache settings for development vs CI
+
+Configure cache maximum age settings. Default is 1 hour for simulator and project caches.
 
 Examples:
 - Set 30 minutes: {"cacheType": "all", "maxAgeMinutes": 30}
@@ -437,7 +536,7 @@ Common Workflow:
     });
 
     // Handle tool calls
-    this.server.setRequestHandler(CallToolRequestSchema, async (request) => {
+    this.server.setRequestHandler(CallToolRequestSchema, async request => {
       const { name, arguments: args } = request.params;
 
       try {
@@ -476,10 +575,7 @@ Common Workflow:
           case 'cache-clear':
             return await clearCacheTool(args);
           default:
-            throw new McpError(
-              ErrorCode.MethodNotFound,
-              `Unknown tool: ${name}`
-            );
+            throw new McpError(ErrorCode.MethodNotFound, `Unknown tool: ${name}`);
         }
       } catch (error) {
         if (error instanceof McpError) {
@@ -494,7 +590,7 @@ Common Workflow:
   }
 
   private setupErrorHandling() {
-    this.server.onerror = (error) => {
+    this.server.onerror = error => {
       console.error('[MCP Error]', error);
     };
 

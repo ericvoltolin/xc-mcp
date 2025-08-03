@@ -2,7 +2,11 @@ import { executeCommand, buildSimctlCommand } from '../../utils/command.js';
 import type { ToolResult, SimulatorList, OutputFormat } from '../../types/xcode.js';
 import { McpError, ErrorCode } from '@modelcontextprotocol/sdk/types.js';
 import { simulatorCache, type CachedSimulatorList } from '../../state/simulator-cache.js';
-import { responseCache, extractSimulatorSummary, createProgressiveSimulatorResponse } from '../../utils/response-cache.js';
+import {
+  responseCache,
+  extractSimulatorSummary,
+  createProgressiveSimulatorResponse,
+} from '../../utils/response-cache.js';
 
 interface SimctlListToolArgs {
   deviceType?: string;
@@ -13,25 +17,25 @@ interface SimctlListToolArgs {
 }
 
 export async function simctlListTool(args: any) {
-  const { 
+  const {
     deviceType,
     runtime,
     availability = 'available',
     outputFormat = 'json',
-    concise = true
+    concise = true,
   } = args as SimctlListToolArgs;
 
   try {
     // Use the new caching system
     const cachedList = await simulatorCache.getSimulatorList();
-    
+
     let responseData: any;
 
     // Use progressive disclosure by default (concise=true)
     if (concise && outputFormat === 'json') {
       // Generate concise summary
       const summary = extractSimulatorSummary(cachedList);
-      
+
       // Store full output in response cache
       const cacheId = responseCache.store({
         tool: 'simctl-list',
@@ -48,7 +52,11 @@ export async function simctlListTool(args: any) {
       });
 
       // Return progressive disclosure response
-      responseData = createProgressiveSimulatorResponse(summary, cacheId, { deviceType, runtime, availability });
+      responseData = createProgressiveSimulatorResponse(summary, cacheId, {
+        deviceType,
+        runtime,
+        availability,
+      });
     } else {
       // Legacy mode: return full filtered list
       if (outputFormat === 'json') {
@@ -58,18 +66,18 @@ export async function simctlListTool(args: any) {
           runtime,
           availability,
         });
-        
+
         responseData = filteredList;
       } else {
         // For text format, we need to convert back to original format
-        responseData = `Simulator List (cached at ${cachedList.lastUpdated.toISOString()}):\n` +
+        responseData =
+          `Simulator List (cached at ${cachedList.lastUpdated.toISOString()}):\n` +
           JSON.stringify(cachedList, null, 2);
       }
     }
 
-    const responseText = outputFormat === 'json' 
-      ? JSON.stringify(responseData, null, 2)
-      : responseData;
+    const responseText =
+      outputFormat === 'json' ? JSON.stringify(responseData, null, 2) : responseData;
 
     return {
       content: [
@@ -91,7 +99,7 @@ export async function simctlListTool(args: any) {
 }
 
 function filterCachedSimulatorList(
-  list: CachedSimulatorList, 
+  list: CachedSimulatorList,
   filters: {
     deviceType?: string;
     runtime?: string;
@@ -108,16 +116,17 @@ function filterCachedSimulatorList(
 
   // Filter device types if specified
   if (filters.deviceType) {
-    filtered.devicetypes = list.devicetypes.filter(dt => 
+    filtered.devicetypes = list.devicetypes.filter(dt =>
       dt.name.toLowerCase().includes(filters.deviceType!.toLowerCase())
     );
   }
 
   // Filter runtimes if specified
   if (filters.runtime) {
-    filtered.runtimes = list.runtimes.filter(rt => 
-      rt.name.toLowerCase().includes(filters.runtime!.toLowerCase()) ||
-      rt.version.includes(filters.runtime!)
+    filtered.runtimes = list.runtimes.filter(
+      rt =>
+        rt.name.toLowerCase().includes(filters.runtime!.toLowerCase()) ||
+        rt.version.includes(filters.runtime!)
     );
   }
 
@@ -130,7 +139,10 @@ function filterCachedSimulatorList(
 
     const filteredDevices = devices.filter(device => {
       // Filter by device type
-      if (filters.deviceType && !device.name.toLowerCase().includes(filters.deviceType.toLowerCase())) {
+      if (
+        filters.deviceType &&
+        !device.name.toLowerCase().includes(filters.deviceType.toLowerCase())
+      ) {
         return false;
       }
 

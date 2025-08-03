@@ -13,11 +13,11 @@ export async function xcodebuildVersionTool(args: any) {
   try {
     // Build command
     let command = 'xcodebuild -version';
-    
+
     if (sdk) {
       command += ` -sdk ${sdk}`;
     }
-    
+
     if (outputFormat === 'json') {
       command += ' -json';
     }
@@ -42,10 +42,14 @@ export async function xcodebuildVersionTool(args: any) {
       } catch (parseError) {
         // If JSON parsing fails, the output might be plain text
         // This can happen with older Xcode versions
-        responseText = JSON.stringify({ 
-          version: result.stdout,
-          format: 'text' 
-        }, null, 2);
+        responseText = JSON.stringify(
+          {
+            version: result.stdout,
+            format: 'text',
+          },
+          null,
+          2
+        );
       }
     } else {
       responseText = result.stdout;
