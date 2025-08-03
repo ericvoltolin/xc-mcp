@@ -2,7 +2,6 @@ import { jest } from '@jest/globals';
 
 // Mock Node.js built-in modules
 jest.mock('child_process');
-jest.mock('fs/promises');
 jest.mock('path');
 
 // Global test setup
