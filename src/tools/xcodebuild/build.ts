@@ -1,6 +1,5 @@
 import { validateProjectPath, validateScheme } from '../../utils/validation.js';
 import { executeCommand, buildXcodebuildCommand } from '../../utils/command.js';
-import type { XcodeBuildResult } from '../../types/xcode.js';
 import { McpError, ErrorCode } from '@modelcontextprotocol/sdk/types.js';
 import { responseCache, extractBuildSummary } from '../../utils/response-cache.js';
 import { projectCache } from '../../state/project-cache.js';
@@ -44,7 +43,7 @@ export async function xcodebuildBuildTool(args: any) {
     };
 
     // Build command
-    const command = buildXcodebuildCommand(projectPath, 'build', finalConfig);
+    const command = buildXcodebuildCommand('build', projectPath, finalConfig);
 
     console.error(`[xcodebuild-build] Executing: ${command}`);
 
@@ -157,36 +156,10 @@ async function getSmartDestination(preferredConfig: any): Promise<string | undef
     if (preferredSim) {
       return `platform=iOS Simulator,id=${preferredSim.udid}`;
     }
-  } catch (error) {
+  } catch {
     // Fallback to no destination if simulator cache fails
   }
 
   // Return undefined to let xcodebuild use its own defaults
   return undefined;
-}
-
-function extractErrors(output: string): string[] {
-  const errors: string[] = [];
-  const lines = output.split('\n');
-
-  for (const line of lines) {
-    if (line.includes('error:') || line.includes('** BUILD FAILED **')) {
-      errors.push(line.trim());
-    }
-  }
-
-  return errors;
-}
-
-function extractWarnings(output: string): string[] {
-  const warnings: string[] = [];
-  const lines = output.split('\n');
-
-  for (const line of lines) {
-    if (line.includes('warning:')) {
-      warnings.push(line.trim());
-    }
-  }
-
-  return warnings;
 }
