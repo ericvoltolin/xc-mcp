@@ -2,12 +2,14 @@ import { executeCommand, buildSimctlCommand } from '../../utils/command.js';
 import type { ToolResult, SimulatorList, OutputFormat } from '../../types/xcode.js';
 import { McpError, ErrorCode } from '@modelcontextprotocol/sdk/types.js';
 import { simulatorCache, type CachedSimulatorList } from '../../state/simulator-cache.js';
+import { responseCache, extractSimulatorSummary, createProgressiveSimulatorResponse } from '../../utils/response-cache.js';
 
 interface SimctlListToolArgs {
   deviceType?: string;
   runtime?: string;
   availability?: 'available' | 'unavailable' | 'all';
   outputFormat?: OutputFormat;
+  concise?: boolean;
 }
 
 export async function simctlListTool(args: any) {
@@ -15,7 +17,8 @@ export async function simctlListTool(args: any) {
     deviceType,
     runtime,
     availability = 'available',
-    outputFormat = 'json'
+    outputFormat = 'json',
+    concise = true
   } = args as SimctlListToolArgs;
 
   try {
@@ -24,20 +27,44 @@ export async function simctlListTool(args: any) {
     
     let responseData: any;
 
-    if (outputFormat === 'json') {
-      // Apply filters if specified
-      const filteredList = filterCachedSimulatorList(cachedList, {
-        deviceType,
-        runtime,
-        availability,
-      });
+    // Use progressive disclosure by default (concise=true)
+    if (concise && outputFormat === 'json') {
+      // Generate concise summary
+      const summary = extractSimulatorSummary(cachedList);
       
-      responseData = filteredList;
+      // Store full output in response cache
+      const cacheId = responseCache.store({
+        tool: 'simctl-list',
+        fullOutput: JSON.stringify(cachedList, null, 2),
+        stderr: '',
+        exitCode: 0,
+        command: 'simctl list -j',
+        metadata: {
+          totalDevices: summary.totalDevices,
+          availableDevices: summary.availableDevices,
+          filters: { deviceType, runtime, availability },
+          summary,
+        },
+      });
+
+      // Return progressive disclosure response
+      responseData = createProgressiveSimulatorResponse(summary, cacheId, { deviceType, runtime, availability });
     } else {
-      // For text format, we need to convert back to original format
-      // This is a simplified conversion - in practice might need more sophisticated formatting
-      responseData = `Simulator List (cached at ${cachedList.lastUpdated.toISOString()}):\n` +
-        JSON.stringify(cachedList, null, 2);
+      // Legacy mode: return full filtered list
+      if (outputFormat === 'json') {
+        // Apply filters if specified
+        const filteredList = filterCachedSimulatorList(cachedList, {
+          deviceType,
+          runtime,
+          availability,
+        });
+        
+        responseData = filteredList;
+      } else {
+        // For text format, we need to convert back to original format
+        responseData = `Simulator List (cached at ${cachedList.lastUpdated.toISOString()}):\n` +
+          JSON.stringify(cachedList, null, 2);
+      }
     }
 
     const responseText = outputFormat === 'json' 

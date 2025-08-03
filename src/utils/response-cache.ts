@@ -162,3 +162,129 @@ export function extractTestSummary(output: string, stderr: string, exitCode: num
     resultSummary: testResults.slice(-3), // Last few result lines
   };
 }
+
+export function extractSimulatorSummary(cachedList: any) {
+  const allDevices = Object.values(cachedList.devices).flat() as any[];
+  const availableDevices = allDevices.filter(d => d.isAvailable);
+  const bootedDevices = availableDevices.filter(d => d.state === 'Booted');
+  
+  // Extract device type distribution
+  const deviceTypeCounts = new Map<string, number>();
+  availableDevices.forEach(device => {
+    const type = extractDeviceType(device.name);
+    deviceTypeCounts.set(type, (deviceTypeCounts.get(type) || 0) + 1);
+  });
+
+  // Get common runtimes (those with devices)
+  const activeRuntimes = Object.keys(cachedList.devices)
+    .filter(runtime => cachedList.devices[runtime].length > 0)
+    .map(runtime => formatRuntimeName(runtime))
+    .slice(0, 5); // Top 5 most common
+
+  return {
+    totalDevices: allDevices.length,
+    availableDevices: availableDevices.length,
+    bootedDevices: bootedDevices.length,
+    deviceTypes: Array.from(deviceTypeCounts.keys()).slice(0, 5),
+    commonRuntimes: activeRuntimes,
+    lastUpdated: cachedList.lastUpdated,
+    cacheAge: formatTimeAgo(cachedList.lastUpdated),
+    bootedList: bootedDevices.map(d => ({
+      name: d.name,
+      udid: d.udid,
+      state: d.state,
+      runtime: extractRuntimeFromDevice(d, cachedList)
+    })),
+    recentlyUsed: availableDevices
+      .filter(d => d.lastUsed)
+      .sort((a, b) => new Date(b.lastUsed).getTime() - new Date(a.lastUsed).getTime())
+      .slice(0, 3)
+      .map(d => ({
+        name: d.name,
+        udid: d.udid,
+        lastUsed: formatTimeAgo(d.lastUsed)
+      }))
+  };
+}
+
+function extractDeviceType(deviceName: string): string {
+  if (deviceName.includes('iPhone')) return 'iPhone';
+  if (deviceName.includes('iPad')) return 'iPad';
+  if (deviceName.includes('Apple Watch')) return 'Apple Watch';
+  if (deviceName.includes('Apple TV')) return 'Apple TV';
+  if (deviceName.includes('Vision')) return 'Apple Vision Pro';
+  return 'Other';
+}
+
+function formatRuntimeName(runtime: string): string {
+  // Convert "com.apple.CoreSimulator.SimRuntime.iOS-18-0" to "iOS 18.0"
+  const match = runtime.match(/iOS-(\d+)-(\d+)/);
+  if (match) {
+    return `iOS ${match[1]}.${match[2]}`;
+  }
+  
+  // Handle other formats or return as-is
+  if (runtime.includes('iOS')) {
+    return runtime.replace('com.apple.CoreSimulator.SimRuntime.', '').replace(/-/g, ' ');
+  }
+  
+  return runtime;
+}
+
+function extractRuntimeFromDevice(device: any, cachedList: any): string {
+  // Find which runtime this device belongs to
+  for (const [runtimeKey, devices] of Object.entries(cachedList.devices)) {
+    if ((devices as any[]).some(d => d.udid === device.udid)) {
+      return formatRuntimeName(runtimeKey);
+    }
+  }
+  return 'Unknown';
+}
+
+function formatTimeAgo(date: Date | string): string {
+  const now = new Date();
+  const target = new Date(date);
+  const diffMs = now.getTime() - target.getTime();
+  
+  const minutes = Math.floor(diffMs / (1000 * 60));
+  const hours = Math.floor(diffMs / (1000 * 60 * 60));
+  const days = Math.floor(diffMs / (1000 * 60 * 60 * 24));
+  
+  if (days > 0) return `${days} day${days > 1 ? 's' : ''} ago`;
+  if (hours > 0) return `${hours} hour${hours > 1 ? 's' : ''} ago`;
+  if (minutes > 0) return `${minutes} minute${minutes > 1 ? 's' : ''} ago`;
+  return 'Just now';
+}
+
+export function createProgressiveSimulatorResponse(summary: any, cacheId: string, filters: any) {
+  return {
+    cacheId,
+    summary: {
+      totalDevices: summary.totalDevices,
+      availableDevices: summary.availableDevices,
+      bootedDevices: summary.bootedDevices,
+      deviceTypes: summary.deviceTypes,
+      commonRuntimes: summary.commonRuntimes,
+      lastUpdated: summary.lastUpdated.toISOString(),
+      cacheAge: summary.cacheAge
+    },
+    quickAccess: {
+      bootedDevices: summary.bootedList,
+      recentlyUsed: summary.recentlyUsed,
+      recommendedForBuild: summary.bootedList.length > 0 ? [summary.bootedList[0]] : summary.recentlyUsed.slice(0, 1)
+    },
+    nextSteps: [
+      `✅ Found ${summary.availableDevices} available simulators`,
+      `Use 'simctl-get-details' with cacheId for full device list`,
+      `Use filters: deviceType=${filters.deviceType || 'iPhone'}, runtime=${filters.runtime || 'iOS 18.5'}`
+    ],
+    availableDetails: [
+      'full-list', 'devices-only', 'runtimes-only', 'available-only'
+    ],
+    smartFilters: {
+      commonDeviceTypes: ['iPhone', 'iPad'],
+      commonRuntimes: summary.commonRuntimes.slice(0, 2),
+      suggestedFilters: `deviceType=iPhone runtime='${summary.commonRuntimes[0] || 'iOS 18.5'}'`
+    }
+  };
+}

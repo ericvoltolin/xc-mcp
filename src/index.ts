@@ -17,6 +17,7 @@ import { xcodebuildShowSDKsTool } from './tools/xcodebuild/showsdks.js';
 import { xcodebuildVersionTool } from './tools/xcodebuild/version.js';
 import { xcodebuildGetDetailsTool } from './tools/xcodebuild/get-details.js';
 import { simctlListTool } from './tools/simctl/list.js';
+import { simctlGetDetailsTool } from './tools/simctl/get-details.js';
 import { simctlBootTool } from './tools/simctl/boot.js';
 import { simctlShutdownTool } from './tools/simctl/shutdown.js';
 import { listCachedResponsesTool } from './tools/cache/list-cached.js';
@@ -203,24 +204,25 @@ Use simctl-list to see available simulators.`,
           // Simulator Tools
           {
             name: 'simctl-list',
-            description: `List available iOS simulators and devices with intelligent caching.
+            description: `List available iOS simulators and devices with intelligent progressive disclosure.
 
-Results are cached for 1 hour for faster performance. Shows recently used simulators first and includes performance metrics.
+NEW: Now returns concise summaries by default to avoid token overflow! Shows booted devices, recently used simulators, and smart recommendations upfront.
+
+Results are cached for 1 hour for faster performance. Use simctl-get-details with the returned cacheId for full device lists.
 
 Examples:
-- List all available simulators: {}
+- Get simulator summary: {}
 - Find iPhone simulators: {"deviceType": "iPhone"}
 - iOS 17 simulators only: {"runtime": "17"}
-- Show unavailable devices: {"availability": "unavailable"}
+- Legacy full output: {"concise": false}
 
-Device types: iPhone, iPad, Apple Watch, Apple TV
-Runtime examples: "iOS 17.0", "17", "16.4"
+Returns:
+- Booted devices and recently used simulators
+- Smart build recommendations
+- Summary statistics (total, available, device types)
+- Cache ID for detailed access via simctl-get-details
 
-Output includes:
-- Device UDID (for use with simctl-boot, simctl-shutdown)
-- Availability status and state
-- Recently used indicators and performance metrics
-- Boot history and reliability scores`,
+For full device lists, use simctl-get-details with the returned cacheId.`,
             inputSchema: {
               type: 'object',
               properties: {
@@ -244,7 +246,44 @@ Output includes:
                   default: 'json',
                   description: 'Output format preference',
                 },
+                concise: {
+                  type: 'boolean',
+                  default: true,
+                  description: 'Return concise summary (true) or full list (false)',
+                },
               },
+            },
+          },
+          {
+            name: 'simctl-get-details',
+            description: 'Get detailed simulator information from cached simctl-list results with progressive disclosure',
+            inputSchema: {
+              type: 'object',
+              properties: {
+                cacheId: {
+                  type: 'string',
+                  description: 'Cache ID from previous simctl-list call',
+                },
+                detailType: {
+                  type: 'string',
+                  enum: ['full-list', 'devices-only', 'runtimes-only', 'available-only'],
+                  description: 'Type of details to retrieve',
+                },
+                deviceType: {
+                  type: 'string',
+                  description: 'Filter by device type (iPhone, iPad, etc.)',
+                },
+                runtime: {
+                  type: 'string', 
+                  description: 'Filter by runtime version',
+                },
+                maxDevices: {
+                  type: 'number',
+                  default: 20,
+                  description: 'Maximum number of devices to return',
+                },
+              },
+              required: ['cacheId', 'detailType'],
             },
           },
           {
@@ -420,6 +459,8 @@ Common Workflow:
             return await xcodebuildGetDetailsTool(args);
           case 'simctl-list':
             return await simctlListTool(args);
+          case 'simctl-get-details':
+            return await simctlGetDetailsTool(args);
           case 'simctl-boot':
             return await simctlBootTool(args);
           case 'simctl-shutdown':
