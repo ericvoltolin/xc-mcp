@@ -113,7 +113,7 @@ describe('ProjectCache', () => {
 
       const result = await cache.getProjectInfo(projectPath);
 
-      expect(mockBuildXcodebuildCommand).toHaveBeenCalledWith('list', projectPath, { json: true });
+      expect(mockBuildXcodebuildCommand).toHaveBeenCalledWith('-list', projectPath, { json: true });
       expect(mockExecuteCommand).toHaveBeenCalledWith(
         'xcodebuild -project MyApp.xcodeproj -list -json'
       );
@@ -133,7 +133,7 @@ describe('ProjectCache', () => {
 
       const result = await cache.getProjectInfo(projectPath);
 
-      expect(mockBuildXcodebuildCommand).toHaveBeenCalledWith('list', projectPath, {
+      expect(mockBuildXcodebuildCommand).toHaveBeenCalledWith('-list', projectPath, {
         workspace: true,
         json: true,
       });
