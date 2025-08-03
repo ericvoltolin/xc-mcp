@@ -2,6 +2,7 @@ import { validateDeviceId } from '../../utils/validation.js';
 import { executeCommand, buildSimctlCommand } from '../../utils/command.js';
 import type { ToolResult } from '../../types/xcode.js';
 import { McpError, ErrorCode } from '@modelcontextprotocol/sdk/types.js';
+import { simulatorCache } from '../../state/simulator-cache.js';
 
 interface SimctlBootToolArgs {
   deviceId: string;
@@ -58,6 +59,11 @@ export async function simctlBootTool(args: any) {
           `Device booted but failed to wait for completion: ${waitError}`
         );
       }
+    }
+
+    // Record boot event in cache
+    if (bootStatus.success) {
+      simulatorCache.recordBootEvent(deviceId, true, bootStatus.bootTime);
     }
 
     // Format response

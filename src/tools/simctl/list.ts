@@ -1,6 +1,7 @@
 import { executeCommand, buildSimctlCommand } from '../../utils/command.js';
 import type { ToolResult, SimulatorList, OutputFormat } from '../../types/xcode.js';
 import { McpError, ErrorCode } from '@modelcontextprotocol/sdk/types.js';
+import { simulatorCache, type CachedSimulatorList } from '../../state/simulator-cache.js';
 
 interface SimctlListToolArgs {
   deviceType?: string;
@@ -18,45 +19,30 @@ export async function simctlListTool(args: any) {
   } = args as SimctlListToolArgs;
 
   try {
-    // Build command
-    const command = buildSimctlCommand('list', { 
-      json: outputFormat === 'json' 
-    });
-
-    // Execute command
-    const result = await executeCommand(command);
-
-    if (result.code !== 0) {
-      throw new McpError(
-        ErrorCode.InternalError,
-        `Failed to list simulators: ${result.stderr}`
-      );
-    }
-
-    let responseText: string;
+    // Use the new caching system
+    const cachedList = await simulatorCache.getSimulatorList();
+    
+    let responseData: any;
 
     if (outputFormat === 'json') {
-      try {
-        // Parse simulator list
-        const simulatorList: SimulatorList = JSON.parse(result.stdout);
-        
-        // Apply filters if specified
-        const filteredList = filterSimulatorList(simulatorList, {
-          deviceType,
-          runtime,
-          availability,
-        });
-        
-        responseText = JSON.stringify(filteredList, null, 2);
-      } catch (parseError) {
-        throw new McpError(
-          ErrorCode.InternalError,
-          `Failed to parse simctl list output: ${parseError}`
-        );
-      }
+      // Apply filters if specified
+      const filteredList = filterCachedSimulatorList(cachedList, {
+        deviceType,
+        runtime,
+        availability,
+      });
+      
+      responseData = filteredList;
     } else {
-      responseText = result.stdout;
+      // For text format, we need to convert back to original format
+      // This is a simplified conversion - in practice might need more sophisticated formatting
+      responseData = `Simulator List (cached at ${cachedList.lastUpdated.toISOString()}):\n` +
+        JSON.stringify(cachedList, null, 2);
     }
+
+    const responseText = outputFormat === 'json' 
+      ? JSON.stringify(responseData, null, 2)
+      : responseData;
 
     return {
       content: [
@@ -77,18 +63,20 @@ export async function simctlListTool(args: any) {
   }
 }
 
-function filterSimulatorList(
-  list: SimulatorList, 
+function filterCachedSimulatorList(
+  list: CachedSimulatorList, 
   filters: {
     deviceType?: string;
     runtime?: string;
     availability?: string;
   }
-): SimulatorList {
-  const filtered: SimulatorList = {
+): CachedSimulatorList {
+  const filtered: CachedSimulatorList = {
     devices: {},
     runtimes: list.runtimes,
     devicetypes: list.devicetypes,
+    lastUpdated: list.lastUpdated,
+    preferredByProject: list.preferredByProject,
   };
 
   // Filter device types if specified
