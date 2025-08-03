@@ -72,8 +72,8 @@ export class ProjectCache {
 
     // Fetch project data
     const command = projectPath.endsWith('.xcworkspace')
-      ? buildXcodebuildCommand(projectPath, 'list', { workspace: true, json: true })
-      : buildXcodebuildCommand(projectPath, 'list', { json: true });
+      ? buildXcodebuildCommand('list', projectPath, { workspace: true, json: true })
+      : buildXcodebuildCommand('list', projectPath, { json: true });
 
     const result = await executeCommand(command);
     if (result.code !== 0) {
