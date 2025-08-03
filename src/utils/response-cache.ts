@@ -68,9 +68,10 @@ class ResponseCache {
 
     // Remove oldest entries if over limit
     if (this.cache.size > this.maxEntries) {
-      const entries = Array.from(this.cache.entries())
-        .sort(([,a], [,b]) => a.timestamp.getTime() - b.timestamp.getTime());
-      
+      const entries = Array.from(this.cache.entries()).sort(
+        ([, a], [, b]) => a.timestamp.getTime() - b.timestamp.getTime()
+      );
+
       const toRemove = entries.slice(0, this.cache.size - this.maxEntries);
       for (const [id] of toRemove) {
         this.cache.delete(id);
@@ -97,21 +98,17 @@ export const responseCache = new ResponseCache();
 // Helper functions for common response patterns
 export function extractBuildSummary(output: string, stderr: string, exitCode: number) {
   const lines = (output + '\n' + stderr).split('\n');
-  
+
   // Extract key metrics
-  const errors = lines.filter(line => 
-    line.includes('error:') || 
-    line.includes('** BUILD FAILED **')
-  );
-  
-  const warnings = lines.filter(line => 
-    line.includes('warning:')
+  const errors = lines.filter(
+    line => line.includes('error:') || line.includes('** BUILD FAILED **')
   );
 
+  const warnings = lines.filter(line => line.includes('warning:'));
+
   // Look for build success indicator
-  const successIndicators = lines.filter(line =>
-    line.includes('** BUILD SUCCEEDED **') ||
-    line.includes('Build completed')
+  const successIndicators = lines.filter(
+    line => line.includes('** BUILD SUCCEEDED **') || line.includes('Build completed')
   );
 
   // Extract timing info if available
@@ -138,13 +135,14 @@ export function extractBuildSummary(output: string, stderr: string, exitCode: nu
 
 export function extractTestSummary(output: string, stderr: string, exitCode: number) {
   const lines = (output + '\n' + stderr).split('\n');
-  
+
   // Extract test results
-  const testResults = lines.filter(line =>
-    line.includes('Test Suite') ||
-    line.includes('executed') ||
-    line.includes('passed') ||
-    line.includes('failed')
+  const testResults = lines.filter(
+    line =>
+      line.includes('Test Suite') ||
+      line.includes('executed') ||
+      line.includes('passed') ||
+      line.includes('failed')
   );
 
   // Look for test completion

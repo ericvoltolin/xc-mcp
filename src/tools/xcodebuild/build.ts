@@ -3,6 +3,8 @@ import { executeCommand, buildXcodebuildCommand } from '../../utils/command.js';
 import type { XcodeBuildResult } from '../../types/xcode.js';
 import { McpError, ErrorCode } from '@modelcontextprotocol/sdk/types.js';
 import { responseCache, extractBuildSummary } from '../../utils/response-cache.js';
+import { projectCache } from '../../state/project-cache.js';
+import { simulatorCache } from '../../state/simulator-cache.js';
 
 interface BuildToolArgs {
   projectPath: string;
@@ -28,14 +30,21 @@ export async function xcodebuildBuildTool(args: any) {
     await validateProjectPath(projectPath);
     validateScheme(scheme);
 
+    // Get smart defaults from cache
+    const preferredConfig = await projectCache.getPreferredBuildConfig(projectPath);
+    const smartDestination = destination || await getSmartDestination(preferredConfig);
+    
+    // Build final configuration
+    const finalConfig = {
+      scheme: scheme || preferredConfig?.scheme || scheme,
+      configuration: configuration || preferredConfig?.configuration || 'Debug',
+      destination: smartDestination,
+      sdk: sdk || preferredConfig?.sdk,
+      derivedDataPath: derivedDataPath || preferredConfig?.derivedDataPath,
+    };
+
     // Build command
-    const command = buildXcodebuildCommand('build', projectPath, {
-      scheme,
-      configuration,
-      destination,
-      sdk,
-      derivedDataPath,
-    });
+    const command = buildXcodebuildCommand(projectPath, 'build', finalConfig);
 
     console.error(`[xcodebuild-build] Executing: ${command}`);
 
@@ -50,6 +59,24 @@ export async function xcodebuildBuildTool(args: any) {
     // Extract build summary
     const summary = extractBuildSummary(result.stdout, result.stderr, result.code);
     
+    // Record build result in project cache
+    projectCache.recordBuildResult(projectPath, finalConfig, {
+      timestamp: new Date(),
+      success: summary.success,
+      duration,
+      errorCount: summary.errorCount,
+      warningCount: summary.warningCount,
+      buildSizeBytes: summary.buildSizeBytes,
+    });
+
+    // Record simulator usage if destination was used
+    if (finalConfig.destination && finalConfig.destination.includes('Simulator')) {
+      const udidMatch = finalConfig.destination.match(/id=([A-F0-9-]+)/);
+      if (udidMatch) {
+        simulatorCache.recordSimulatorUsage(udidMatch[1], projectPath);
+      }
+    }
+
     // Store full output in cache
     const cacheId = responseCache.store({
       tool: 'xcodebuild-build',
@@ -59,12 +86,16 @@ export async function xcodebuildBuildTool(args: any) {
       command,
       metadata: {
         projectPath,
-        scheme,
-        configuration,
-        destination,
-        sdk,
+        scheme: finalConfig.scheme,
+        configuration: finalConfig.configuration,
+        destination: finalConfig.destination,
+        sdk: finalConfig.sdk,
         duration,
         summary,
+        smartDefaultsUsed: {
+          destination: !destination && smartDestination !== destination,
+          configuration: !args.configuration && finalConfig.configuration !== 'Debug',
+        },
       },
     });
 
@@ -74,8 +105,9 @@ export async function xcodebuildBuildTool(args: any) {
       success: summary.success,
       summary: {
         ...summary,
-        scheme,
-        configuration,
+        scheme: finalConfig.scheme,
+        configuration: finalConfig.configuration,
+        destination: finalConfig.destination,
         duration,
       },
       nextSteps: summary.success 
@@ -113,6 +145,26 @@ export async function xcodebuildBuildTool(args: any) {
       `xcodebuild-build failed: ${error instanceof Error ? error.message : String(error)}`
     );
   }
+}
+
+async function getSmartDestination(preferredConfig: any): Promise<string | undefined> {
+  // If preferred config has a destination, use it
+  if (preferredConfig?.destination) {
+    return preferredConfig.destination;
+  }
+
+  // Try to get a smart simulator destination
+  try {
+    const preferredSim = await simulatorCache.getPreferredSimulator();
+    if (preferredSim) {
+      return `platform=iOS Simulator,id=${preferredSim.udid}`;
+    }
+  } catch (error) {
+    // Fallback to no destination if simulator cache fails
+  }
+
+  // Return undefined to let xcodebuild use its own defaults
+  return undefined;
 }
 
 function extractErrors(output: string): string[] {

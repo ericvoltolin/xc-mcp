@@ -20,6 +20,7 @@ import { simctlListTool } from './tools/simctl/list.js';
 import { simctlBootTool } from './tools/simctl/boot.js';
 import { simctlShutdownTool } from './tools/simctl/shutdown.js';
 import { listCachedResponsesTool } from './tools/cache/list-cached.js';
+import { getCacheStatsTool, setCacheConfigTool, clearCacheTool, getCacheConfigTool } from './tools/cache/cache-management.js';
 import { validateXcodeInstallation } from './utils/validation.js';
 
 class XcodeCLIMCPServer {
@@ -105,7 +106,22 @@ class XcodeCLIMCPServer {
           // Build Tools
           {
             name: 'xcodebuild-build',
-            description: 'Build an Xcode project or workspace',
+            description: `Build an Xcode project or workspace with intelligent defaults.
+
+Features smart caching that remembers your last successful build configuration and suggests optimal simulators.
+
+Examples:
+- Basic build: {"projectPath": "./MyApp.xcodeproj", "scheme": "MyApp"}
+- With simulator: {"projectPath": "./MyApp.xcworkspace", "scheme": "MyApp", "destination": "platform=iOS Simulator,name=iPhone 15"}
+- Release build: {"projectPath": "./MyApp.xcodeproj", "scheme": "MyApp", "configuration": "Release"}
+
+Common destinations:
+- "platform=iOS Simulator,name=iPhone 15"
+- "platform=iOS Simulator,name=iPad Air"
+- "generic/platform=iOS" (for archive)
+- "platform=iOS,id=<DEVICE_UDID>" (for device)
+
+Use simctl-list to see available simulators.`,
             inputSchema: {
               type: 'object',
               properties: {
@@ -124,11 +140,11 @@ class XcodeCLIMCPServer {
                 },
                 destination: {
                   type: 'string',
-                  description: 'Build destination (simulator, device, etc.)',
+                  description: 'Build destination. If not provided, uses intelligent defaults based on project history and available simulators.',
                 },
                 sdk: {
                   type: 'string',
-                  description: 'SDK to use for building',
+                  description: 'SDK to use for building (e.g., "iphonesimulator", "iphoneos")',
                 },
                 derivedDataPath: {
                   type: 'string',
@@ -187,17 +203,34 @@ class XcodeCLIMCPServer {
           // Simulator Tools
           {
             name: 'simctl-list',
-            description: 'List available iOS simulators and devices',
+            description: `List available iOS simulators and devices with intelligent caching.
+
+Results are cached for 1 hour for faster performance. Shows recently used simulators first and includes performance metrics.
+
+Examples:
+- List all available simulators: {}
+- Find iPhone simulators: {"deviceType": "iPhone"}
+- iOS 17 simulators only: {"runtime": "17"}
+- Show unavailable devices: {"availability": "unavailable"}
+
+Device types: iPhone, iPad, Apple Watch, Apple TV
+Runtime examples: "iOS 17.0", "17", "16.4"
+
+Output includes:
+- Device UDID (for use with simctl-boot, simctl-shutdown)
+- Availability status and state
+- Recently used indicators and performance metrics
+- Boot history and reliability scores`,
             inputSchema: {
               type: 'object',
               properties: {
                 deviceType: {
                   type: 'string',
-                  description: 'Filter by device type (iPhone, iPad, etc.)',
+                  description: 'Filter by device type (iPhone, iPad, Apple Watch, Apple TV)',
                 },
                 runtime: {
                   type: 'string',
-                  description: 'Filter by iOS runtime version',
+                  description: 'Filter by iOS runtime version (e.g., "17", "iOS 17.0", "16.4")',
                 },
                 availability: {
                   type: 'string',
@@ -216,18 +249,28 @@ class XcodeCLIMCPServer {
           },
           {
             name: 'simctl-boot',
-            description: 'Boot an iOS simulator device',
+            description: `Boot an iOS simulator device with performance tracking.
+
+Automatically tracks boot times and device performance metrics for optimization. Records usage patterns for intelligent device suggestions in future builds.
+
+Examples:
+- Boot specific device: {"deviceId": "A1B2C3D4-E5F6-7890-ABCD-EF1234567890"}
+- Boot and wait: {"deviceId": "A1B2C3D4-E5F6-7890-ABCD-EF1234567890", "waitForBoot": true}
+- Boot any device: {"deviceId": "booted"} (if already booted)
+
+Get device UUIDs from simctl-list tool.
+Boot times are recorded for performance optimization and device recommendations.`,
             inputSchema: {
               type: 'object',
               properties: {
                 deviceId: {
                   type: 'string',
-                  description: 'Device UDID or "booted" for any booted device',
+                  description: 'Device UDID (from simctl-list) or "booted" for any currently booted device',
                 },
                 waitForBoot: {
                   type: 'boolean',
                   default: true,
-                  description: 'Wait for device to finish booting',
+                  description: 'Wait for device to finish booting completely',
                 },
               },
               required: ['deviceId'],
@@ -266,6 +309,90 @@ class XcodeCLIMCPServer {
               },
             },
           },
+          {
+            name: 'cache-get-stats',
+            description: `Get comprehensive statistics about all cache systems (simulator, project, response).
+
+Shows cache hit rates, expiry times, storage usage, and performance metrics across all caching layers.
+
+Useful for:
+- Monitoring cache effectiveness
+- Debugging performance issues
+- Understanding usage patterns
+- Cache optimization decisions`,
+            inputSchema: {
+              type: 'object',
+              properties: {},
+            },
+          },
+          {
+            name: 'cache-get-config',
+            description: 'Get current cache configuration settings',
+            inputSchema: {
+              type: 'object',
+              properties: {
+                cacheType: {
+                  type: 'string',
+                  enum: ['simulator', 'project', 'response', 'all'],
+                  default: 'all',
+                  description: 'Which cache configuration to retrieve',
+                },
+              },
+            },
+          },
+          {
+            name: 'cache-set-config',
+            description: `Configure cache maximum age settings. Default is 1 hour for simulator and project caches.
+
+Examples:
+- Set 30 minutes: {"cacheType": "all", "maxAgeMinutes": 30}
+- Set 2 hours for simulators: {"cacheType": "simulator", "maxAgeHours": 2}  
+- Set 5 minutes: {"cacheType": "project", "maxAgeMinutes": 5}
+
+Common Workflow:
+1. cache-get-stats → check current cache status
+2. cache-set-config → adjust cache timeouts
+3. cache-clear → force refresh when needed
+4. Your normal xcodebuild/simctl operations (now faster!)`,
+            inputSchema: {
+              type: 'object',
+              properties: {
+                cacheType: {
+                  type: 'string',
+                  enum: ['simulator', 'project', 'response', 'all'],
+                  description: 'Which cache to configure',
+                },
+                maxAgeMs: {
+                  type: 'number',
+                  description: 'Maximum cache age in milliseconds',
+                },
+                maxAgeMinutes: {
+                  type: 'number',
+                  description: 'Maximum cache age in minutes (alternative to maxAgeMs)',
+                },
+                maxAgeHours: {
+                  type: 'number',
+                  description: 'Maximum cache age in hours (alternative to maxAgeMs)',
+                },
+              },
+              required: ['cacheType'],
+            },
+          },
+          {
+            name: 'cache-clear',
+            description: 'Clear cached data to force fresh data retrieval',
+            inputSchema: {
+              type: 'object',
+              properties: {
+                cacheType: {
+                  type: 'string',
+                  enum: ['simulator', 'project', 'response', 'all'],
+                  description: 'Which cache to clear',
+                },
+              },
+              required: ['cacheType'],
+            },
+          },
         ],
       };
     });
@@ -299,6 +426,14 @@ class XcodeCLIMCPServer {
             return await simctlShutdownTool(args);
           case 'list-cached-responses':
             return await listCachedResponsesTool(args);
+          case 'cache-get-stats':
+            return await getCacheStatsTool(args);
+          case 'cache-get-config':
+            return await getCacheConfigTool(args);
+          case 'cache-set-config':
+            return await setCacheConfigTool(args);
+          case 'cache-clear':
+            return await clearCacheTool(args);
           default:
             throw new McpError(
               ErrorCode.MethodNotFound,

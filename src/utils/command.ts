@@ -52,7 +52,7 @@ export async function executeCommand(
 
 export function executeCommandSync(command: string): CommandResult {
   try {
-    const stdout = execSync(command, { 
+    const stdout = execSync(command, {
       encoding: 'utf8',
       maxBuffer: 10 * 1024 * 1024,
     });
