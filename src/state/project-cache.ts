@@ -59,10 +59,10 @@ export class ProjectCache {
 
   async getProjectInfo(projectPath: string, force = false): Promise<ProjectInfo> {
     const normalizedPath = this.normalizePath(projectPath);
-    
+
     // Check if we need to refresh
     const existing = this.projectConfigs.get(normalizedPath);
-    if (!force && existing && await this.isProjectCacheValid(existing)) {
+    if (!force && existing && (await this.isProjectCacheValid(existing))) {
       return existing;
     }
 
@@ -81,7 +81,7 @@ export class ProjectCache {
     }
 
     const projectData: XcodeProject = JSON.parse(result.stdout);
-    
+
     const projectInfo: ProjectInfo = {
       path: normalizedPath,
       lastModified,
@@ -96,27 +96,25 @@ export class ProjectCache {
 
   async getPreferredBuildConfig(projectPath: string): Promise<BuildConfig | null> {
     const projectInfo = await this.getProjectInfo(projectPath);
-    
+
     // Return last successful config if available
     if (projectInfo.lastSuccessfulConfig) {
       return projectInfo.lastSuccessfulConfig;
     }
 
     // Generate smart defaults
-    const schemes = projectInfo.projectData.project?.schemes || 
-                   projectInfo.projectData.workspace?.schemes || [];
-    
+    const schemes =
+      projectInfo.projectData.project?.schemes || projectInfo.projectData.workspace?.schemes || [];
+
     if (schemes.length === 0) {
       return null;
     }
 
     // Prefer scheme that matches project name or first scheme
-    const projectName = projectInfo.projectData.project?.name || 
-                       projectInfo.projectData.workspace?.name;
-    
-    const preferredScheme = projectName && schemes.includes(projectName) 
-      ? projectName 
-      : schemes[0];
+    const projectName =
+      projectInfo.projectData.project?.name || projectInfo.projectData.workspace?.name;
+
+    const preferredScheme = projectName && schemes.includes(projectName) ? projectName : schemes[0];
 
     return {
       scheme: preferredScheme,
@@ -124,9 +122,13 @@ export class ProjectCache {
     };
   }
 
-  recordBuildResult(projectPath: string, config: BuildConfig, metrics: Omit<BuildMetrics, 'config'>): void {
+  recordBuildResult(
+    projectPath: string,
+    config: BuildConfig,
+    metrics: Omit<BuildMetrics, 'config'>
+  ): void {
     const normalizedPath = this.normalizePath(projectPath);
-    
+
     const buildMetric: BuildMetrics = {
       ...metrics,
       config,
@@ -135,12 +137,12 @@ export class ProjectCache {
     // Update build history
     const history = this.buildHistory.get(normalizedPath) || [];
     history.push(buildMetric);
-    
+
     // Keep only last 20 builds
     if (history.length > 20) {
       history.splice(0, history.length - 20);
     }
-    
+
     this.buildHistory.set(normalizedPath, history);
 
     // Update last successful config if build succeeded
@@ -166,23 +168,23 @@ export class ProjectCache {
     buildTimeImprovement?: number;
   } {
     const history = this.getBuildHistory(projectPath, 20);
-    
+
     if (history.length === 0) {
       return { successRate: 0, recentErrorCount: 0 };
     }
 
     const successful = history.filter(h => h.success);
     const successRate = successful.length / history.length;
-    
-    const durations = successful
-      .map(h => h.duration)
-      .filter((d): d is number => d !== undefined);
-    
-    const avgBuildTime = durations.length > 0 
-      ? durations.reduce((sum, d) => sum + d, 0) / durations.length
-      : undefined;
 
-    const recentErrorCount = history.slice(0, 5) // Last 5 builds
+    const durations = successful.map(h => h.duration).filter((d): d is number => d !== undefined);
+
+    const avgBuildTime =
+      durations.length > 0
+        ? durations.reduce((sum, d) => sum + d, 0) / durations.length
+        : undefined;
+
+    const recentErrorCount = history
+      .slice(0, 5) // Last 5 builds
       .reduce((sum, h) => sum + h.errorCount, 0);
 
     // Calculate build time trend (recent vs older builds)
@@ -206,7 +208,7 @@ export class ProjectCache {
   async getDependencyInfo(projectPath: string): Promise<DependencyInfo | null> {
     const normalizedPath = this.normalizePath(projectPath);
     const projectDir = dirname(projectPath);
-    
+
     // Check cache first
     const existing = this.dependencyCache.get(normalizedPath);
     if (existing && this.isDependencyCacheValid(existing)) {
@@ -247,7 +249,7 @@ export class ProjectCache {
 
       this.dependencyCache.set(normalizedPath, depInfo);
       return depInfo;
-    } catch (error) {
+    } catch {
       return null;
     }
   }
@@ -261,8 +263,10 @@ export class ProjectCache {
   } {
     return {
       projectCount: this.projectConfigs.size,
-      buildHistoryCount: Array.from(this.buildHistory.values())
-        .reduce((sum, history) => sum + history.length, 0),
+      buildHistoryCount: Array.from(this.buildHistory.values()).reduce(
+        (sum, history) => sum + history.length,
+        0
+      ),
       dependencyCount: this.dependencyCache.size,
       cacheMaxAgeMs: this.cacheMaxAge,
       cacheMaxAgeHuman: this.formatDuration(this.cacheMaxAge),

@@ -17,7 +17,7 @@ export async function validateProjectPath(projectPath: string): Promise<void> {
   try {
     await access(projectPath, constants.F_OK);
     const stats = await stat(projectPath);
-    
+
     if (!stats.isDirectory()) {
       throw new McpError(
         ErrorCode.InvalidParams,
@@ -25,7 +25,8 @@ export async function validateProjectPath(projectPath: string): Promise<void> {
       );
     }
 
-    const isXcodeProject = projectPath.endsWith('.xcodeproj') || projectPath.endsWith('.xcworkspace');
+    const isXcodeProject =
+      projectPath.endsWith('.xcodeproj') || projectPath.endsWith('.xcworkspace');
     if (!isXcodeProject) {
       throw new McpError(
         ErrorCode.InvalidParams,
@@ -45,19 +46,13 @@ export async function validateProjectPath(projectPath: string): Promise<void> {
 
 export function validateScheme(scheme: string): void {
   if (!scheme || scheme.trim().length === 0) {
-    throw new McpError(
-      ErrorCode.InvalidParams,
-      'Scheme name is required and cannot be empty'
-    );
+    throw new McpError(ErrorCode.InvalidParams, 'Scheme name is required and cannot be empty');
   }
 }
 
 export function validateDeviceId(deviceId: string): void {
   if (!deviceId || deviceId.trim().length === 0) {
-    throw new McpError(
-      ErrorCode.InvalidParams,
-      'Device ID is required and cannot be empty'
-    );
+    throw new McpError(ErrorCode.InvalidParams, 'Device ID is required and cannot be empty');
   }
 }
 

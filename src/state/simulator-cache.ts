@@ -1,4 +1,9 @@
-import { SimulatorDevice, SimulatorList, SimulatorRuntime, SimulatorDeviceType } from '../types/xcode.js';
+import {
+  SimulatorDevice,
+  SimulatorList,
+  SimulatorRuntime,
+  SimulatorDeviceType,
+} from '../types/xcode.js';
 import { executeCommand, buildSimctlCommand } from '../utils/command.js';
 
 export interface SimulatorInfo extends SimulatorDevice {
@@ -55,7 +60,7 @@ export class SimulatorCache {
     }
 
     const simulatorList: SimulatorList = JSON.parse(result.stdout);
-    
+
     // Transform to cached format with enhanced info
     const cachedList: CachedSimulatorList = {
       devices: {},
@@ -106,16 +111,19 @@ export class SimulatorCache {
     return devices.sort((a, b) => {
       const aLastUsed = a.lastUsed?.getTime() || 0;
       const bLastUsed = b.lastUsed?.getTime() || 0;
-      
+
       if (aLastUsed !== bLastUsed) {
         return bLastUsed - aLastUsed; // Most recent first
       }
-      
+
       return a.name.localeCompare(b.name);
     });
   }
 
-  async getPreferredSimulator(projectPath?: string, deviceType?: string): Promise<SimulatorInfo | null> {
+  async getPreferredSimulator(
+    projectPath?: string,
+    deviceType?: string
+  ): Promise<SimulatorInfo | null> {
     // Check project-specific preference first
     if (projectPath) {
       const preferredUdid = this.preferredByProject.get(projectPath);
@@ -134,19 +142,19 @@ export class SimulatorCache {
 
   async findSimulatorByUdid(udid: string): Promise<SimulatorInfo | null> {
     const list = await this.getSimulatorList();
-    
+
     for (const devices of Object.values(list.devices)) {
       const found = devices.find(device => device.udid === udid);
       if (found) return found;
     }
-    
+
     return null;
   }
 
   recordSimulatorUsage(udid: string, projectPath?: string): void {
     const now = new Date();
     this.lastUsed.set(udid, now);
-    
+
     if (projectPath) {
       this.preferredByProject.set(projectPath, udid);
     }
@@ -171,14 +179,13 @@ export class SimulatorCache {
         const device = devices.find(d => d.udid === udid);
         if (device) {
           device.bootHistory.push(new Date());
-          
+
           // Update performance metrics
           if (duration) {
             const metrics = device.performanceMetrics || { avgBootTime: 0, reliability: 1.0 };
             const bootTimes = device.bootHistory.slice(-10); // Last 10 boots
             const currentAvg = metrics.avgBootTime || 0;
-            metrics.avgBootTime = bootTimes.length > 1 ? 
-              (currentAvg + duration) / 2 : duration;
+            metrics.avgBootTime = bootTimes.length > 1 ? (currentAvg + duration) / 2 : duration;
             metrics.reliability = Math.min(1.0, bootTimes.length / 10);
             device.performanceMetrics = metrics;
           }
@@ -192,9 +199,9 @@ export class SimulatorCache {
     return this.bootStates.get(udid) || 'unknown';
   }
 
-  getCacheStats(): { 
-    isCached: boolean; 
-    lastUpdated?: Date; 
+  getCacheStats(): {
+    isCached: boolean;
+    lastUpdated?: Date;
     cacheMaxAgeMs: number;
     cacheMaxAgeHuman: string;
     deviceCount: number;
@@ -203,24 +210,26 @@ export class SimulatorCache {
     timeUntilExpiry?: string;
   } {
     const cacheMaxAgeHuman = this.formatDuration(this.cacheMaxAge);
-    
+
     if (!this.cache) {
-      return { 
-        isCached: false, 
+      return {
+        isCached: false,
         cacheMaxAgeMs: this.cacheMaxAge,
         cacheMaxAgeHuman,
-        deviceCount: 0, 
+        deviceCount: 0,
         recentlyUsedCount: 0,
-        isExpired: false
+        isExpired: false,
       };
     }
 
-    const deviceCount = Object.values(this.cache.devices)
-      .reduce((sum, devices) => sum + devices.length, 0);
+    const deviceCount = Object.values(this.cache.devices).reduce(
+      (sum, devices) => sum + devices.length,
+      0
+    );
 
-    const recentlyUsedCount = Array.from(this.lastUsed.values())
-      .filter(date => Date.now() - date.getTime() < 24 * 60 * 60 * 1000)
-      .length;
+    const recentlyUsedCount = Array.from(this.lastUsed.values()).filter(
+      date => Date.now() - date.getTime() < 24 * 60 * 60 * 1000
+    ).length;
 
     const ageMs = Date.now() - this.cache.lastUpdated.getTime();
     const isExpired = ageMs >= this.cacheMaxAge;
@@ -245,12 +254,12 @@ export class SimulatorCache {
 
   private findExistingDevice(udid: string): SimulatorInfo | undefined {
     if (!this.cache) return undefined;
-    
+
     for (const devices of Object.values(this.cache.devices)) {
       const found = devices.find(device => device.udid === udid);
       if (found) return found;
     }
-    
+
     return undefined;
   }
 
