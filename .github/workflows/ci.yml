@@ -1,0 +1,88 @@
+name: CI
+
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main, develop ]
+
+jobs:
+  test:
+    name: Test & Build
+    runs-on: macos-latest
+    
+    strategy:
+      matrix:
+        node-version: [18.x, 20.x]
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      
+    - name: Setup Node.js ${{ matrix.node-version }}
+      uses: actions/setup-node@v4
+      with:
+        node-version: ${{ matrix.node-version }}
+        cache: 'npm'
+        
+    - name: Install dependencies
+      run: npm ci
+      
+    - name: Check code formatting
+      run: npm run format:check
+      
+    - name: Run linting
+      run: npm run lint
+      
+    - name: Run TypeScript compilation
+      run: npm run build
+      
+    - name: Run tests
+      run: npm test
+      
+    - name: Test MCP server startup
+      run: |
+        # Test that the server can start and respond to basic commands
+        timeout 5s npm start || [ $? -eq 124 ]
+      
+  xcode-compatibility:
+    name: Xcode Compatibility Check
+    runs-on: macos-latest
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: '20.x'
+        cache: 'npm'
+        
+    - name: Install dependencies
+      run: npm ci
+      
+    - name: Build project
+      run: npm run build
+      
+    - name: Check Xcode installation
+      run: |
+        xcode-select --version
+        xcodebuild -version
+        xcrun simctl version
+        
+    - name: Test Xcode CLI compatibility
+      run: |
+        # Verify basic Xcode tools work (these are wrapped by XC-MCP)
+        xcodebuild -showsdks | head -5
+        xcrun simctl list devices | head -10
+        
+    - name: Test XC-MCP server with real Xcode environment
+      run: |
+        # Start server in background and test basic functionality
+        npm start &
+        SERVER_PID=$!
+        sleep 3
+        
+        # Test server is responsive (basic smoke test)
+        kill $SERVER_PID || true

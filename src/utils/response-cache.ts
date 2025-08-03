@@ -167,7 +167,7 @@ export function extractSimulatorSummary(cachedList: any) {
   const allDevices = Object.values(cachedList.devices).flat() as any[];
   const availableDevices = allDevices.filter(d => d.isAvailable);
   const bootedDevices = availableDevices.filter(d => d.state === 'Booted');
-  
+
   // Extract device type distribution
   const deviceTypeCounts = new Map<string, number>();
   availableDevices.forEach(device => {
@@ -193,7 +193,7 @@ export function extractSimulatorSummary(cachedList: any) {
       name: d.name,
       udid: d.udid,
       state: d.state,
-      runtime: extractRuntimeFromDevice(d, cachedList)
+      runtime: extractRuntimeFromDevice(d, cachedList),
     })),
     recentlyUsed: availableDevices
       .filter(d => d.lastUsed)
@@ -202,8 +202,8 @@ export function extractSimulatorSummary(cachedList: any) {
       .map(d => ({
         name: d.name,
         udid: d.udid,
-        lastUsed: formatTimeAgo(d.lastUsed)
-      }))
+        lastUsed: formatTimeAgo(d.lastUsed),
+      })),
   };
 }
 
@@ -222,12 +222,12 @@ function formatRuntimeName(runtime: string): string {
   if (match) {
     return `iOS ${match[1]}.${match[2]}`;
   }
-  
+
   // Handle other formats or return as-is
   if (runtime.includes('iOS')) {
     return runtime.replace('com.apple.CoreSimulator.SimRuntime.', '').replace(/-/g, ' ');
   }
-  
+
   return runtime;
 }
 
@@ -245,11 +245,11 @@ function formatTimeAgo(date: Date | string): string {
   const now = new Date();
   const target = new Date(date);
   const diffMs = now.getTime() - target.getTime();
-  
+
   const minutes = Math.floor(diffMs / (1000 * 60));
   const hours = Math.floor(diffMs / (1000 * 60 * 60));
   const days = Math.floor(diffMs / (1000 * 60 * 60 * 24));
-  
+
   if (days > 0) return `${days} day${days > 1 ? 's' : ''} ago`;
   if (hours > 0) return `${hours} hour${hours > 1 ? 's' : ''} ago`;
   if (minutes > 0) return `${minutes} minute${minutes > 1 ? 's' : ''} ago`;
@@ -266,25 +266,24 @@ export function createProgressiveSimulatorResponse(summary: any, cacheId: string
       deviceTypes: summary.deviceTypes,
       commonRuntimes: summary.commonRuntimes,
       lastUpdated: summary.lastUpdated.toISOString(),
-      cacheAge: summary.cacheAge
+      cacheAge: summary.cacheAge,
     },
     quickAccess: {
       bootedDevices: summary.bootedList,
       recentlyUsed: summary.recentlyUsed,
-      recommendedForBuild: summary.bootedList.length > 0 ? [summary.bootedList[0]] : summary.recentlyUsed.slice(0, 1)
+      recommendedForBuild:
+        summary.bootedList.length > 0 ? [summary.bootedList[0]] : summary.recentlyUsed.slice(0, 1),
     },
     nextSteps: [
       `✅ Found ${summary.availableDevices} available simulators`,
       `Use 'simctl-get-details' with cacheId for full device list`,
-      `Use filters: deviceType=${filters.deviceType || 'iPhone'}, runtime=${filters.runtime || 'iOS 18.5'}`
+      `Use filters: deviceType=${filters.deviceType || 'iPhone'}, runtime=${filters.runtime || 'iOS 18.5'}`,
     ],
-    availableDetails: [
-      'full-list', 'devices-only', 'runtimes-only', 'available-only'
-    ],
+    availableDetails: ['full-list', 'devices-only', 'runtimes-only', 'available-only'],
     smartFilters: {
       commonDeviceTypes: ['iPhone', 'iPad'],
       commonRuntimes: summary.commonRuntimes.slice(0, 2),
-      suggestedFilters: `deviceType=iPhone runtime='${summary.commonRuntimes[0] || 'iOS 18.5'}'`
-    }
+      suggestedFilters: `deviceType=iPhone runtime='${summary.commonRuntimes[0] || 'iOS 18.5'}'`,
+    },
   };
 }
