@@ -16,7 +16,7 @@ export async function simctlGetDetailsTool(args: any) {
     detailType,
     deviceType,
     runtime,
-    maxDevices = 20
+    maxDevices = 20,
   } = args as SimctlGetDetailsArgs;
 
   try {
@@ -36,7 +36,7 @@ export async function simctlGetDetailsTool(args: any) {
     }
 
     const fullList: CachedSimulatorList = JSON.parse(cached.fullOutput);
-    
+
     let responseData: any;
 
     switch (detailType) {
@@ -53,10 +53,7 @@ export async function simctlGetDetailsTool(args: any) {
         responseData = formatAvailableOnly(fullList, { deviceType, runtime, maxDevices });
         break;
       default:
-        throw new McpError(
-          ErrorCode.InvalidParams,
-          `Unknown detailType: ${detailType}`
-        );
+        throw new McpError(ErrorCode.InvalidParams, `Unknown detailType: ${detailType}`);
     }
 
     return {
@@ -88,11 +85,11 @@ function formatFullList(
       totalDevices: Object.values(filtered.devices).flat().length,
       lastUpdated: filtered.lastUpdated,
       runtimeCount: Object.keys(filtered.devices).length,
-      deviceTypeCount: filtered.devicetypes.length
+      deviceTypeCount: filtered.devicetypes.length,
     },
     devices: filtered.devices,
     runtimes: filtered.runtimes,
-    devicetypes: filtered.devicetypes
+    devicetypes: filtered.devicetypes,
   };
 }
 
@@ -105,17 +102,15 @@ function formatDevicesOnly(
     devices.map(device => ({ ...device, runtime }))
   );
 
-  const limitedDevices = filters.maxDevices 
-    ? allDevices.slice(0, filters.maxDevices)
-    : allDevices;
+  const limitedDevices = filters.maxDevices ? allDevices.slice(0, filters.maxDevices) : allDevices;
 
   return {
     summary: {
       totalMatching: allDevices.length,
       showing: limitedDevices.length,
-      filters: filters
+      filters: filters,
     },
-    devices: limitedDevices
+    devices: limitedDevices,
   };
 }
 
@@ -123,15 +118,15 @@ function formatRuntimesOnly(fullList: CachedSimulatorList): any {
   return {
     summary: {
       totalRuntimes: fullList.runtimes.length,
-      lastUpdated: fullList.lastUpdated
+      lastUpdated: fullList.lastUpdated,
     },
     runtimes: fullList.runtimes.map(runtime => ({
       name: runtime.name,
       version: runtime.version,
       identifier: runtime.identifier,
       isAvailable: runtime.isAvailable,
-      deviceCount: fullList.devices[runtime.identifier]?.length || 0
-    }))
+      deviceCount: fullList.devices[runtime.identifier]?.length || 0,
+    })),
   };
 }
 
@@ -141,9 +136,7 @@ function formatAvailableOnly(
 ): any {
   const filtered = applyFilters(fullList, filters);
   const availableDevices = Object.entries(filtered.devices).flatMap(([runtime, devices]) =>
-    devices
-      .filter(device => device.isAvailable)
-      .map(device => ({ ...device, runtime }))
+    devices.filter(device => device.isAvailable).map(device => ({ ...device, runtime }))
   );
 
   // Sort by recent usage and boot state
@@ -151,17 +144,17 @@ function formatAvailableOnly(
     // Booted devices first
     if (a.state === 'Booted' && b.state !== 'Booted') return -1;
     if (b.state === 'Booted' && a.state !== 'Booted') return 1;
-    
+
     // Then by last used
     const aLastUsed = a.lastUsed ? new Date(a.lastUsed).getTime() : 0;
     const bLastUsed = b.lastUsed ? new Date(b.lastUsed).getTime() : 0;
     if (aLastUsed !== bLastUsed) return bLastUsed - aLastUsed;
-    
+
     // Finally by name
     return a.name.localeCompare(b.name);
   });
 
-  const limitedDevices = filters.maxDevices 
+  const limitedDevices = filters.maxDevices
     ? availableDevices.slice(0, filters.maxDevices)
     : availableDevices;
 
@@ -170,13 +163,13 @@ function formatAvailableOnly(
       totalAvailable: availableDevices.length,
       showing: limitedDevices.length,
       bootedCount: availableDevices.filter(d => d.state === 'Booted').length,
-      filters: filters
+      filters: filters,
     },
     devices: limitedDevices,
     recommendations: {
       preferredForBuild: limitedDevices.slice(0, 3),
-      bootedDevices: limitedDevices.filter(d => d.state === 'Booted')
-    }
+      bootedDevices: limitedDevices.filter(d => d.state === 'Booted'),
+    },
   };
 }
 
@@ -194,16 +187,17 @@ function applyFilters(
 
   // Filter device types if specified
   if (filters.deviceType) {
-    filtered.devicetypes = fullList.devicetypes.filter(dt => 
+    filtered.devicetypes = fullList.devicetypes.filter(dt =>
       dt.name.toLowerCase().includes(filters.deviceType!.toLowerCase())
     );
   }
 
   // Filter runtimes if specified
   if (filters.runtime) {
-    filtered.runtimes = fullList.runtimes.filter(rt => 
-      rt.name.toLowerCase().includes(filters.runtime!.toLowerCase()) ||
-      rt.version.includes(filters.runtime!)
+    filtered.runtimes = fullList.runtimes.filter(
+      rt =>
+        rt.name.toLowerCase().includes(filters.runtime!.toLowerCase()) ||
+        rt.version.includes(filters.runtime!)
     );
   }
 
@@ -216,7 +210,10 @@ function applyFilters(
 
     const filteredDevices = devices.filter(device => {
       // Filter by device type
-      if (filters.deviceType && !device.name.toLowerCase().includes(filters.deviceType.toLowerCase())) {
+      if (
+        filters.deviceType &&
+        !device.name.toLowerCase().includes(filters.deviceType.toLowerCase())
+      ) {
         return false;
       }
 

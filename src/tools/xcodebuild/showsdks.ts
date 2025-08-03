@@ -11,18 +11,13 @@ export async function xcodebuildShowSDKsTool(args: any) {
 
   try {
     // Build command
-    const command = outputFormat === 'json' 
-      ? 'xcodebuild -showsdks -json'
-      : 'xcodebuild -showsdks';
+    const command = outputFormat === 'json' ? 'xcodebuild -showsdks -json' : 'xcodebuild -showsdks';
 
     // Execute command
     const result = await executeCommand(command);
 
     if (result.code !== 0) {
-      throw new McpError(
-        ErrorCode.InternalError,
-        `Failed to show SDKs: ${result.stderr}`
-      );
+      throw new McpError(ErrorCode.InternalError, `Failed to show SDKs: ${result.stderr}`);
     }
 
     let responseText: string;

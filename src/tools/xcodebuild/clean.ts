@@ -10,11 +10,7 @@ interface CleanToolArgs {
 }
 
 export async function xcodebuildCleanTool(args: any) {
-  const { 
-    projectPath, 
-    scheme, 
-    configuration 
-  } = args as CleanToolArgs;
+  const { projectPath, scheme, configuration } = args as CleanToolArgs;
 
   try {
     // Validate inputs
@@ -31,20 +27,24 @@ export async function xcodebuildCleanTool(args: any) {
 
     // Execute command
     const startTime = Date.now();
-    const result = await executeCommand(command, { 
+    const result = await executeCommand(command, {
       timeout: 180000, // 3 minutes for clean
     });
     const duration = Date.now() - startTime;
 
     // Format response
-    const responseText = JSON.stringify({
-      success: result.code === 0,
-      command,
-      duration,
-      output: result.stdout,
-      error: result.stderr,
-      exitCode: result.code,
-    }, null, 2);
+    const responseText = JSON.stringify(
+      {
+        success: result.code === 0,
+        command,
+        duration,
+        output: result.stdout,
+        error: result.stderr,
+        exitCode: result.code,
+      },
+      null,
+      2
+    );
 
     return {
       content: [

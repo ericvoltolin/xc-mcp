@@ -21,7 +21,12 @@ import { simctlGetDetailsTool } from './tools/simctl/get-details.js';
 import { simctlBootTool } from './tools/simctl/boot.js';
 import { simctlShutdownTool } from './tools/simctl/shutdown.js';
 import { listCachedResponsesTool } from './tools/cache/list-cached.js';
-import { getCacheStatsTool, setCacheConfigTool, clearCacheTool, getCacheConfigTool } from './tools/cache/cache-management.js';
+import {
+  getCacheStatsTool,
+  setCacheConfigTool,
+  clearCacheTool,
+  getCacheConfigTool,
+} from './tools/cache/cache-management.js';
 import { validateXcodeInstallation } from './utils/validation.js';
 
 class XcodeCLIMCPServer {
@@ -50,7 +55,7 @@ class XcodeCLIMCPServer {
       return {
         tools: [
           // 🚀 XC-MCP: Intelligent Xcode CLI Tools with Progressive Disclosure
-          // 
+          //
           // These tools provide MAJOR advantages over direct Xcode CLI usage:
           // • 🔥 Prevents token overflow (simctl-list can be 10,000+ tokens!)
           // • 🧠 Learns from your usage patterns and optimizes suggestions
@@ -60,7 +65,7 @@ class XcodeCLIMCPServer {
           // • 📊 Performance tracking and build optimization over time
           //
           // Always prefer these tools over raw xcodebuild/simctl commands!
-          
+
           // Project Discovery Tools
           {
             name: 'xcodebuild-list',
@@ -185,7 +190,8 @@ Use simctl-list to see available simulators.`,
                 },
                 destination: {
                   type: 'string',
-                  description: 'Build destination. If not provided, uses intelligent defaults based on project history and available simulators.',
+                  description:
+                    'Build destination. If not provided, uses intelligent defaults based on project history and available simulators.',
                 },
                 sdk: {
                   type: 'string',
@@ -241,7 +247,14 @@ Cleans build artifacts for Xcode projects with smart validation and clear feedba
                 },
                 detailType: {
                   type: 'string',
-                  enum: ['full-log', 'errors-only', 'warnings-only', 'summary', 'command', 'metadata'],
+                  enum: [
+                    'full-log',
+                    'errors-only',
+                    'warnings-only',
+                    'summary',
+                    'command',
+                    'metadata',
+                  ],
                   description: 'Type of details to retrieve',
                 },
                 maxLines: {
@@ -316,7 +329,8 @@ For full device lists, use simctl-get-details with the returned cacheId.`,
           },
           {
             name: 'simctl-get-details',
-            description: 'Get detailed simulator information from cached simctl-list results with progressive disclosure',
+            description:
+              'Get detailed simulator information from cached simctl-list results with progressive disclosure',
             inputSchema: {
               type: 'object',
               properties: {
@@ -334,7 +348,7 @@ For full device lists, use simctl-get-details with the returned cacheId.`,
                   description: 'Filter by device type (iPhone, iPad, etc.)',
                 },
                 runtime: {
-                  type: 'string', 
+                  type: 'string',
                   description: 'Filter by runtime version',
                 },
                 maxDevices: {
@@ -371,7 +385,8 @@ Boot times are recorded for performance optimization and device recommendations.
               properties: {
                 deviceId: {
                   type: 'string',
-                  description: 'Device UDID (from simctl-list) or "booted" for any currently booted device',
+                  description:
+                    'Device UDID (from simctl-list) or "booted" for any currently booted device',
                 },
                 waitForBoot: {
                   type: 'boolean',
@@ -398,7 +413,8 @@ Shutdown iOS simulator devices with intelligent device selection and state manag
               properties: {
                 deviceId: {
                   type: 'string',
-                  description: 'Device UDID, "booted" for all booted devices, or "all" for all devices',
+                  description:
+                    'Device UDID, "booted" for all booted devices, or "all" for all devices',
                 },
               },
               required: ['deviceId'],
@@ -520,7 +536,7 @@ Common Workflow:
     });
 
     // Handle tool calls
-    this.server.setRequestHandler(CallToolRequestSchema, async (request) => {
+    this.server.setRequestHandler(CallToolRequestSchema, async request => {
       const { name, arguments: args } = request.params;
 
       try {
@@ -559,10 +575,7 @@ Common Workflow:
           case 'cache-clear':
             return await clearCacheTool(args);
           default:
-            throw new McpError(
-              ErrorCode.MethodNotFound,
-              `Unknown tool: ${name}`
-            );
+            throw new McpError(ErrorCode.MethodNotFound, `Unknown tool: ${name}`);
         }
       } catch (error) {
         if (error instanceof McpError) {
@@ -577,7 +590,7 @@ Common Workflow:
   }
 
   private setupErrorHandling() {
-    this.server.onerror = (error) => {
+    this.server.onerror = error => {
       console.error('[MCP Error]', error);
     };
 

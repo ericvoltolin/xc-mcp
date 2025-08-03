@@ -11,7 +11,7 @@ export async function listCachedResponsesTool(args: any) {
 
   try {
     const stats = responseCache.getStats();
-    
+
     let recentResponses;
     if (tool) {
       recentResponses = responseCache.getRecentByTool(tool, limit);
@@ -19,7 +19,9 @@ export async function listCachedResponsesTool(args: any) {
       // Get recent from all tools
       const allTools = Object.keys(stats.byTool);
       recentResponses = allTools
-        .flatMap(toolName => responseCache.getRecentByTool(toolName, Math.ceil(limit / allTools.length)))
+        .flatMap(toolName =>
+          responseCache.getRecentByTool(toolName, Math.ceil(limit / allTools.length))
+        )
         .sort((a, b) => b.timestamp.getTime() - a.timestamp.getTime())
         .slice(0, limit);
     }
@@ -40,8 +42,8 @@ export async function listCachedResponsesTool(args: any) {
       usage: {
         totalCached: stats.totalEntries,
         availableTools: Object.keys(stats.byTool),
-        note: 'Use xcodebuild-get-details with any ID to retrieve full details'
-      }
+        note: 'Use xcodebuild-get-details with any ID to retrieve full details',
+      },
     };
 
     const responseText = JSON.stringify(responseData, null, 2);

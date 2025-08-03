@@ -10,10 +10,7 @@ interface SimctlBootToolArgs {
 }
 
 export async function simctlBootTool(args: any) {
-  const { 
-    deviceId, 
-    waitForBoot = true 
-  } = args as SimctlBootToolArgs;
+  const { deviceId, waitForBoot = true } = args as SimctlBootToolArgs;
 
   try {
     // Validate inputs
@@ -26,7 +23,7 @@ export async function simctlBootTool(args: any) {
 
     // Execute boot command
     const startTime = Date.now();
-    const bootResult = await executeCommand(bootCommand, { 
+    const bootResult = await executeCommand(bootCommand, {
       timeout: 120000, // 2 minutes for boot
     });
 
@@ -40,7 +37,10 @@ export async function simctlBootTool(args: any) {
     };
 
     // If boot failed due to device already being booted, that's actually OK
-    if (!bootStatus.success && bootResult.stderr.includes('Unable to boot device in current state: Booted')) {
+    if (
+      !bootStatus.success &&
+      bootResult.stderr.includes('Unable to boot device in current state: Booted')
+    ) {
       bootStatus = {
         ...bootStatus,
         success: true,
@@ -101,12 +101,12 @@ async function waitForDeviceBoot(deviceId: string, timeoutMs = 120000): Promise<
 
       if (result.code === 0) {
         const deviceList = JSON.parse(result.stdout);
-        
+
         // Find the device in the list
         for (const devices of Object.values(deviceList.devices)) {
           const deviceArray = devices as any[];
           const device = deviceArray.find(d => d.udid === deviceId);
-          
+
           if (device && device.state === 'Booted') {
             return; // Device is fully booted
           }

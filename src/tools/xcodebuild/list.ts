@@ -16,8 +16,8 @@ export async function xcodebuildListTool(args: any) {
     await validateProjectPath(projectPath);
 
     // Build command
-    const command = buildXcodebuildCommand('-list', projectPath, { 
-      json: outputFormat === 'json' 
+    const command = buildXcodebuildCommand('-list', projectPath, {
+      json: outputFormat === 'json',
     });
 
     // Execute command
