@@ -1,5 +1,4 @@
-import { executeCommand, buildSimctlCommand } from '../../utils/command.js';
-import type { ToolResult, SimulatorList, OutputFormat } from '../../types/xcode.js';
+import type { OutputFormat } from '../../types/xcode.js';
 import { McpError, ErrorCode } from '@modelcontextprotocol/sdk/types.js';
 import { simulatorCache, type CachedSimulatorList } from '../../state/simulator-cache.js';
 import {
@@ -8,7 +7,7 @@ import {
   createProgressiveSimulatorResponse,
 } from '../../utils/response-cache.js';
 
-interface SimctlListToolArgs {
+interface SimctlListArgs {
   deviceType?: string;
   runtime?: string;
   availability?: 'available' | 'unavailable' | 'all';
@@ -23,13 +22,13 @@ export async function simctlListTool(args: any) {
     availability = 'available',
     outputFormat = 'json',
     concise = true,
-  } = args as SimctlListToolArgs;
+  } = args as SimctlListArgs;
 
   try {
     // Use the new caching system
     const cachedList = await simulatorCache.getSimulatorList();
 
-    let responseData: any;
+    let responseData: Record<string, unknown> | string;
 
     // Use progressive disclosure by default (concise=true)
     if (concise && outputFormat === 'json') {
@@ -46,8 +45,7 @@ export async function simctlListTool(args: any) {
         metadata: {
           totalDevices: summary.totalDevices,
           availableDevices: summary.availableDevices,
-          filters: { deviceType, runtime, availability },
-          summary,
+          hasFilters: !!(deviceType || runtime || availability !== 'available'),
         },
       });
 
@@ -67,7 +65,12 @@ export async function simctlListTool(args: any) {
           availability,
         });
 
-        responseData = filteredList;
+        responseData = {
+          devices: filteredList.devices,
+          runtimes: filteredList.runtimes,
+          devicetypes: filteredList.devicetypes,
+          lastUpdated: filteredList.lastUpdated.toISOString(),
+        };
       } else {
         // For text format, we need to convert back to original format
         responseData =

@@ -8,7 +8,7 @@ export interface CachedResponse {
   stderr: string;
   exitCode: number;
   command: string;
-  metadata: Record<string, any>;
+  metadata: Record<string, string | number | boolean | null | undefined>;
 }
 
 class ResponseCache {
@@ -163,8 +163,21 @@ export function extractTestSummary(output: string, stderr: string, exitCode: num
   };
 }
 
-export function extractSimulatorSummary(cachedList: any) {
-  const allDevices = Object.values(cachedList.devices).flat() as any[];
+interface SimulatorDeviceForSummary {
+  isAvailable: boolean;
+  state: string;
+  name: string;
+  udid: string;
+  lastUsed?: Date;
+}
+
+interface CachedSimulatorList {
+  devices: Record<string, SimulatorDeviceForSummary[]>;
+  lastUpdated: Date;
+}
+
+export function extractSimulatorSummary(cachedList: CachedSimulatorList) {
+  const allDevices = Object.values(cachedList.devices).flat();
   const availableDevices = allDevices.filter(d => d.isAvailable);
   const bootedDevices = availableDevices.filter(d => d.state === 'Booted');
 
@@ -197,12 +210,17 @@ export function extractSimulatorSummary(cachedList: any) {
     })),
     recentlyUsed: availableDevices
       .filter(d => d.lastUsed)
-      .sort((a, b) => new Date(b.lastUsed).getTime() - new Date(a.lastUsed).getTime())
+      .sort((a, b) => {
+        // We already filtered for devices with lastUsed
+        const aTime = a.lastUsed?.getTime() ?? 0;
+        const bTime = b.lastUsed?.getTime() ?? 0;
+        return bTime - aTime;
+      })
       .slice(0, 3)
       .map(d => ({
         name: d.name,
         udid: d.udid,
-        lastUsed: formatTimeAgo(d.lastUsed),
+        lastUsed: formatTimeAgo(d.lastUsed || new Date()),
       })),
   };
 }
@@ -231,10 +249,13 @@ function formatRuntimeName(runtime: string): string {
   return runtime;
 }
 
-function extractRuntimeFromDevice(device: any, cachedList: any): string {
+function extractRuntimeFromDevice(
+  device: { udid: string },
+  cachedList: CachedSimulatorList
+): string {
   // Find which runtime this device belongs to
   for (const [runtimeKey, devices] of Object.entries(cachedList.devices)) {
-    if ((devices as any[]).some(d => d.udid === device.udid)) {
+    if (devices.some(d => d.udid === device.udid)) {
       return formatRuntimeName(runtimeKey);
     }
   }
@@ -256,7 +277,29 @@ function formatTimeAgo(date: Date | string): string {
   return 'Just now';
 }
 
-export function createProgressiveSimulatorResponse(summary: any, cacheId: string, filters: any) {
+interface SimulatorSummary {
+  totalDevices: number;
+  availableDevices: number;
+  bootedDevices: number;
+  deviceTypes: string[];
+  commonRuntimes: string[];
+  lastUpdated: Date;
+  cacheAge: string;
+  bootedList: Array<{ name: string; udid: string; state: string; runtime: string }>;
+  recentlyUsed: Array<{ name: string; udid: string; lastUsed: string }>;
+}
+
+interface SimulatorFilters {
+  deviceType?: string;
+  runtime?: string;
+  availability?: string;
+}
+
+export function createProgressiveSimulatorResponse(
+  summary: SimulatorSummary,
+  cacheId: string,
+  filters: SimulatorFilters
+) {
   return {
     cacheId,
     summary: {

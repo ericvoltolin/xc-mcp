@@ -2,7 +2,7 @@ import { validateProjectPath, validateScheme } from '../../utils/validation.js';
 import { executeCommand, buildXcodebuildCommand } from '../../utils/command.js';
 import { McpError, ErrorCode } from '@modelcontextprotocol/sdk/types.js';
 import { responseCache, extractBuildSummary } from '../../utils/response-cache.js';
-import { projectCache } from '../../state/project-cache.js';
+import { projectCache, type BuildConfig } from '../../state/project-cache.js';
 import { simulatorCache } from '../../state/simulator-cache.js';
 
 interface BuildToolArgs {
@@ -90,11 +90,11 @@ export async function xcodebuildBuildTool(args: any) {
         destination: finalConfig.destination,
         sdk: finalConfig.sdk,
         duration,
-        summary,
-        smartDefaultsUsed: {
-          destination: !destination && smartDestination !== destination,
-          configuration: !args.configuration && finalConfig.configuration !== 'Debug',
-        },
+        success: summary.success,
+        errorCount: summary.errorCount,
+        warningCount: summary.warningCount,
+        smartDestinationUsed: !destination && smartDestination !== destination,
+        smartConfigurationUsed: !args.configuration && finalConfig.configuration !== 'Debug',
       },
     });
 
@@ -144,7 +144,9 @@ export async function xcodebuildBuildTool(args: any) {
   }
 }
 
-async function getSmartDestination(preferredConfig: any): Promise<string | undefined> {
+async function getSmartDestination(
+  preferredConfig: BuildConfig | null
+): Promise<string | undefined> {
   // If preferred config has a destination, use it
   if (preferredConfig?.destination) {
     return preferredConfig.destination;
