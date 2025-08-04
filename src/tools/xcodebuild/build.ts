@@ -31,7 +31,7 @@ export async function xcodebuildBuildTool(args: any) {
 
     // Get smart defaults from cache
     const preferredConfig = await projectCache.getPreferredBuildConfig(projectPath);
-    const smartDestination = destination || (await getSmartDestination(preferredConfig));
+    const smartDestination = destination || (await getSmartDestination(preferredConfig, projectPath));
 
     // Build final configuration
     const finalConfig = {
@@ -98,7 +98,11 @@ export async function xcodebuildBuildTool(args: any) {
       },
     });
 
-    // Create concise response
+    // Create concise response with smart defaults transparency
+    const usedSmartDestination = !destination && smartDestination;
+    const usedSmartConfiguration = !configuration && finalConfig.configuration !== 'Debug';
+    const hasPreferredConfig = !!preferredConfig;
+
     const responseData = {
       buildId: cacheId,
       success: summary.success,
@@ -109,15 +113,26 @@ export async function xcodebuildBuildTool(args: any) {
         destination: finalConfig.destination,
         duration,
       },
+      intelligence: {
+        usedSmartDestination,
+        usedSmartConfiguration,
+        hasPreferredConfig,
+        simulatorUsageRecorded: !!(finalConfig.destination && finalConfig.destination.includes('Simulator')),
+        configurationLearned: summary.success, // Successful builds get remembered
+      },
       nextSteps: summary.success
         ? [
             `✅ Build completed successfully in ${duration}ms`,
+            ...(usedSmartDestination ? [`🧠 Used smart simulator: ${finalConfig.destination}`] : []),
+            ...(hasPreferredConfig ? [`📊 Applied cached project preferences`] : []),
             `Use 'xcodebuild-get-details' with buildId '${cacheId}' for full logs`,
+            `Tip: This successful configuration is now cached for future builds`,
           ]
         : [
             `❌ Build failed with ${summary.errorCount} errors, ${summary.warningCount} warnings`,
             `First error: ${summary.firstError || 'Unknown error'}`,
             `Use 'xcodebuild-get-details' with buildId '${cacheId}' for full logs and errors`,
+            ...(usedSmartDestination ? [`💡 Try 'simctl-list' to see other available simulators`] : []),
           ],
       availableDetails: ['full-log', 'errors-only', 'warnings-only', 'summary', 'command'],
     };
@@ -145,16 +160,17 @@ export async function xcodebuildBuildTool(args: any) {
 }
 
 async function getSmartDestination(
-  preferredConfig: BuildConfig | null
+  preferredConfig: BuildConfig | null,
+  projectPath: string
 ): Promise<string | undefined> {
   // If preferred config has a destination, use it
   if (preferredConfig?.destination) {
     return preferredConfig.destination;
   }
 
-  // Try to get a smart simulator destination
+  // Try to get a smart simulator destination with project-specific preference
   try {
-    const preferredSim = await simulatorCache.getPreferredSimulator();
+    const preferredSim = await simulatorCache.getPreferredSimulator(projectPath);
     if (preferredSim) {
       return `platform=iOS Simulator,id=${preferredSim.udid}`;
     }
