@@ -7,7 +7,7 @@
 [![Ask DeepWiki](https://deepwiki.com/badge.svg)](https://deepwiki.com/conorluddy/xc-mcp)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
-**Problem**: MCP clients can't use Xcode CLI tools because `simctl list` returns 57,000+ tokens, exceeding MCP limits.  
+**Problem**: MCP clients can't effectively use Xcode CLI tools because the build and simulator listing commands return more than 50,000 tokens, exceeding MCP limits.  
 **Solution**: Progressive disclosure with intelligent caching returns 2,000 tokens instead, achieving 96% reduction.  
 **Result**: Full Xcode tooling functionality without token overflow, 90% faster workflows.
 
